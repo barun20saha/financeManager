@@ -12,11 +12,17 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
+import java.util.concurrent.Executor
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private var pendingBackupData: String? = null
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
+    private lateinit var executor: Executor
+    private lateinit var biometricPrompt: BiometricPrompt
+    private lateinit var promptInfo: BiometricPrompt.PromptInfo
 
     // Launcher for selecting where to save the backup JSON file
     private val createDocumentLauncher = registerForActivityResult(
@@ -109,6 +115,47 @@ class MainActivity : AppCompatActivity() {
                 }
             },
         )
+
+        setupBiometric()
+    }
+
+    private fun setupBiometric() {
+        executor = ContextCompat.getMainExecutor(this)
+        biometricPrompt = BiometricPrompt(this, executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    webView.post {
+                        webView.evaluateJavascript("window.onBiometricResult(false, '$errString')", null)
+                    }
+                }
+
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    webView.post {
+                        webView.evaluateJavascript("window.onBiometricResult(true, 'Success')", null)
+                    }
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                    webView.post {
+                        webView.evaluateJavascript("window.onBiometricResult(false, 'Failed')", null)
+                    }
+                }
+            })
+
+        promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Biometric login for My Accounts")
+            .setSubtitle("Log in using your biometric credential")
+            .setNegativeButtonText("Use PIN")
+            .build()
+    }
+
+    fun authenticateBiometric() {
+        runOnUiThread {
+            biometricPrompt.authenticate(promptInfo)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -160,5 +207,10 @@ class AndroidInterface(private val activity: MainActivity) {
         activity.runOnUiThread {
             activity.openFilePicker()
         }
+    }
+
+    @JavascriptInterface
+    fun authenticateBiometric() {
+        activity.authenticateBiometric()
     }
 }
