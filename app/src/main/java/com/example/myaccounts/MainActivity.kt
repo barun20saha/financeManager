@@ -14,10 +14,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
+import com.example.myaccounts.storage.JsonStorageManager
 import java.util.concurrent.Executor
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
+    private lateinit var storageManager: JsonStorageManager
     private var pendingBackupData: String? = null
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private lateinit var executor: Executor
@@ -67,6 +69,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        storageManager = JsonStorageManager(this)
 
         webView = findViewById(R.id.webView)
         webView.webViewClient = WebViewClient()
@@ -192,6 +196,14 @@ class MainActivity : AppCompatActivity() {
     fun openFilePicker() {
         openDocumentLauncher.launch(arrayOf("*/*"))
     }
+
+    fun saveAppData(jsonData: String): Boolean {
+        return storageManager.saveAppData(jsonData)
+    }
+
+    fun loadAppData(): String? {
+        return storageManager.loadAppData()
+    }
 }
 
 class AndroidInterface(private val activity: MainActivity) {
@@ -212,5 +224,15 @@ class AndroidInterface(private val activity: MainActivity) {
     @JavascriptInterface
     fun authenticateBiometric() {
         activity.authenticateBiometric()
+    }
+
+    @JavascriptInterface
+    fun saveAppData(jsonData: String): Boolean {
+        return activity.saveAppData(jsonData)
+    }
+
+    @JavascriptInterface
+    fun loadAppData(): String? {
+        return activity.loadAppData()
     }
 }
