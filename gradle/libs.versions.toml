@@ -11,6 +11,7 @@ composeBom = "2026.02.01"
 constraintlayout = "2.2.1"
 appcompat = "1.7.0"
 biometric = "1.2.0-alpha05"
+bson = "5.3.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -30,6 +31,7 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+bson = { group = "org.mongodb", name = "bson", version.ref = "bson" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
