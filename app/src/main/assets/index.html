@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+[source: 1]<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <title>Fire Ball - My Accounts</title>
 
-<!-- PWA Meta Tags -->
+<!-- PWA & Mobile Meta Tags -->
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -13,9 +13,11 @@
 <meta name="theme-color" content="#065f46"/>
 <meta name="description" content="Fire Ball - Customer, Supplier Ledger & Trip Expense Tracker"/>
 
+<!-- External Dependencies -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script>
+  // Filter out Babel warning noise in WebView console
   const _warn = console.warn;
   console.warn = (...args) => {
     if (args[0] && typeof args[0] === 'string' && args[0].includes('Babel')) return;
@@ -23,6 +25,7 @@
   };
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
 <style>
   :root {
     --primary: #065f46;
@@ -34,26 +37,46 @@
     --red-light: #ffebee;
     --amber: #f57c00;
     --amber-light: #fff8e1;
-    --bg: #f7f8fa;
+    --bg: #f4f6f8;
     --card-bg: #ffffff;
-    --text-main: #1a1a1a;
-    --text-muted: #757575;
+    --text-main: #111827;
+    --text-muted: #6b7280;
     --border-color: #e5e7eb;
   }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  body{
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
     background: var(--bg);
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: var(--text-main);
-    overscroll-behavior:none;
+    overscroll-behavior: none;
     height: 100vh;
     overflow: hidden;
+    user-select: none;
   }
-  input,textarea,button,select{font-family:inherit;}
-  ::-webkit-scrollbar{width:0;height:0;}
 
-  .safe-top { padding-top: calc(12px + env(safe-area-inset-top, 24px)); }
-  .safe-bottom { padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)); }
+  input, textarea, button, select {
+    font-family: inherit;
+  }
+
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .safe-top {
+    padding-top: calc(12px + env(safe-area-inset-top, 24px));
+  }
+
+  .safe-bottom {
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+  }
 
   .btn-pill {
     border-radius: 12px;
@@ -67,7 +90,10 @@
     justify-content: center;
     gap: 6px;
   }
-  .btn-pill:active { transform: scale(0.98); opacity: 0.9; }
+  .btn-pill:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
 
   .card {
     background: var(--card-bg);
@@ -87,7 +113,9 @@
     cursor: pointer;
     transition: background 0.3s;
   }
-  .toggle-switch.on { background: var(--primary); }
+  .toggle-switch.on {
+    background: var(--primary);
+  }
   .toggle-switch::after {
     content: '';
     position: absolute;
@@ -100,24 +128,62 @@
     transition: left 0.3s;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
-  .toggle-switch.on::after { left: 24px; }
+  .toggle-switch.on::after {
+    left: 24px;
+  }
+
+  /* Heatmap custom grid styling */
+  .heatmap-day {
+    width: 13px;
+    height: 13px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .heatmap-day:active {
+    transform: scale(1.2);
+  }
+
+  /* Navigation Bar styling */
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+    color: #8e8e93;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .nav-item.active {
+    color: var(--primary);
+  }
+  .nav-item-icon {
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
 </style>
 </head>
 <body>
 <div id="root"></div>
+
 <script type="text/babel">
 const { useState, useCallback, useRef, useEffect, useMemo } = React;
 
 // ── CONSTANTS & PALETTE ──────────────────────────────────────
 const NAVY = "#065f46", NAVY_LIGHT = "#d1fae5";
 const GREEN = "#2e7d32", GREEN_LIGHT = "#e8f5e9";
-const TEAL = "#065f46", TEAL_LIGHT = "#d1fae5";
-const COLORS = ["#1a3a6b","#1565c0","#2e7d32","#6a1b9a","#e65100","#00695c","#ad1457","#4e342e"];
+const RED = "#c62828", RED_LIGHT = "#ffebee";
+const AMBER = "#f57c00", AMBER_LIGHT = "#fff8e1";
+const COLORS = ["#065f46", "#1a3a6b", "#1565c0", "#2e7d32", "#6a1b9a", "#e65100", "#00695c", "#ad1457"];
 
 // ── HELPERS ──────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const todayStr = () => new Date().toISOString().split("T")[0];
-const fmtAmt = n => "₹" + Math.abs(Math.round(n * 100) / 100).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const fmtAmt = n => "₹" + Math.abs(Math.round((n || 0) * 100) / 100).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const fmtDate = d => {
   if (!d) return "";
   try {
@@ -131,7 +197,7 @@ const fmtDate = d => {
 };
 const initials = n => (n || "").trim().split(" ").filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "??";
 
-// ── DB & LOCAL FILE PERSISTENCE ──────────────────────────────
+// ── INITIAL DATA SCHEMA & PERSISTENCE ─────────────────────────
 const INIT = {
   customers: [],
   suppliers: [],
@@ -153,7 +219,7 @@ function loadFromAllSources() {
       const androidData = window.AndroidBridge.loadAppData();
       if (androidData) {
         const parsed = JSON.parse(androidData);
-        if (parsed && (parsed.customers || parsed.trips)) {
+        if (parsed && (parsed.customers || parsed.trips || parsed.transactions)) {
           return { ...INIT, ...parsed };
         }
       }
@@ -163,13 +229,13 @@ function loadFromAllSources() {
   // 2. LocalStorage
   try {
     const d = JSON.parse(localStorage.getItem(DB_KEY) || "null");
-    if (d && (d.customers || d.trips)) return { ...INIT, ...d };
+    if (d && (d.customers || d.trips || d.transactions)) return { ...INIT, ...d };
   } catch (e) {}
 
   // 3. SessionStorage
   try {
     const d = JSON.parse(sessionStorage.getItem(DB_KEY) || "null");
-    if (d && (d.customers || d.trips)) return { ...INIT, ...d };
+    if (d && (d.customers || d.trips || d.transactions)) return { ...INIT, ...d };
   } catch (e) {}
 
   return INIT;
@@ -267,7 +333,7 @@ const entityStats = txs => {
   return { gave, got, balance: got - gave };
 };
 
-// ── COMMON UI STYLES ─────────────────────────────────────────
+// ── COMMON FORM STYLES ───────────────────────────────────────
 const inp = {
   width: "100%",
   border: "1.5px solid #e0e0e0",
@@ -318,7 +384,7 @@ function Modal({ open, onClose, title, children, center = false }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// 1. PRIMARY HOME PAGE - "MY ACCOUNTS" / FIRE BALL
+// 1. CUSTOMERS & SUPPLIERS LIST VIEW
 // ══════════════════════════════════════════════════════════════
 
 function EntityList({ db, save, tab, accentColor, accentLight, onOpen, onModalChange, logAction }) {
@@ -870,7 +936,7 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
 }
 
 // ══════════════════════════════════════════════════════════════
-// 2. TRIP EXPENSE TRACKER (WITH VERTICAL ELLIPSIS ⋮)
+// 2. TRIP EXPENSE TRACKER
 // ══════════════════════════════════════════════════════════════
 
 function TripsView({ db, save, logAction }) {
@@ -878,7 +944,7 @@ function TripsView({ db, save, logAction }) {
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [tripName, setTripName] = useState("");
 
-  // Modals for inside trip
+  // Modals inside active trip
   const [showMenu, setShowMenu] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -898,14 +964,13 @@ function TripsView({ db, save, logAction }) {
   const [expAmt, setExpAmt] = useState("");
   const [expPayer, setExpPayer] = useState("");
   const [expParticipants, setExpParticipants] = useState([]);
-  const [expSplitType, setExpSplitType] = useState("equal"); // "equal" or "manual"
+  const [expSplitType, setExpSplitType] = useState("equal");
   const [expManualShares, setExpManualShares] = useState({});
   const [expDate, setExpDate] = useState(todayStr());
 
   const trips = db.trips || [];
   const activeTrip = trips.find(t => t.id === activeTripId);
 
-  // ── Create Trip ─────────────────────────────────────────────
   const createTrip = () => {
     if (!tripName.trim()) return;
     const trimmed = tripName.trim();
@@ -928,7 +993,6 @@ function TripsView({ db, save, logAction }) {
     save({ ...db, trips: nextTrips });
   };
 
-  // ── Member Management ───────────────────────────────────────
   const addMember = () => {
     if (!newMemberName.trim()) return;
     const name = newMemberName.trim();
@@ -943,12 +1007,11 @@ function TripsView({ db, save, logAction }) {
   };
 
   const removeMember = (memberName) => {
-    // Check if member is involved in any expenses
     const hasPaid = activeTrip.expenses.some(e => e.paidBy === memberName);
     const hasShare = activeTrip.expenses.some(e => e.participants.includes(memberName) && (e.shares[memberName] || 0) > 0);
 
     if (hasPaid || hasShare) {
-      setMemberErr(`Cannot remove "${memberName}": they are tied to recorded expenses. Remove or reassign those expenses first.`);
+      setMemberErr(`Cannot remove "${memberName}": tied to existing expenses.`);
       return;
     }
     updateActiveTrip(t => ({ ...t, members: t.members.filter(m => m !== memberName) }));
@@ -956,11 +1019,10 @@ function TripsView({ db, save, logAction }) {
     setMemberErr("");
   };
 
-  // ── Equal Split Calculation with exact penny rounding ──────
+  // Compute equal shares with penny rounding guarantee
   const computeEqualShares = (totalAmount, participants) => {
     if (!participants || participants.length === 0 || totalAmount <= 0) return {};
     const count = participants.length;
-    // Total cents / paise
     const totalPaise = Math.round(totalAmount * 100);
     const basePaise = Math.floor(totalPaise / count);
     const remainder = totalPaise % count;
@@ -973,7 +1035,6 @@ function TripsView({ db, save, logAction }) {
     return shares;
   };
 
-  // ── Add / Edit Expense ──────────────────────────────────────
   const openNewExpense = () => {
     setEditingExpenseId(null);
     setExpDesc("");
@@ -1065,7 +1126,6 @@ function TripsView({ db, save, logAction }) {
     setSelectedExpense(null);
   };
 
-  // ── Balances & Settlement Calculations ──────────────────────
   const tripBalances = useMemo(() => {
     if (!activeTrip) return {};
     const balances = {};
@@ -1093,7 +1153,6 @@ function TripsView({ db, save, logAction }) {
 
   const settlementPayments = useMemo(() => {
     if (!activeTrip) return [];
-    // Greedy balance matching to minimize payments
     const creditors = [];
     const debtors = [];
 
@@ -1136,7 +1195,6 @@ function TripsView({ db, save, logAction }) {
     return activeTrip.expenses.reduce((sum, e) => sum + e.amount, 0);
   }, [activeTrip]);
 
-  // ── ACTIVE TRIP VIEW ────────────────────────────────────────
   if (activeTripId && activeTrip) {
     return (
       <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#f7f8fa"}}>
@@ -1144,17 +1202,14 @@ function TripsView({ db, save, logAction }) {
         <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:14,display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
           <div onClick={() => setActiveTripId(null)} style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>←</div>
           <div style={{flex:1,fontWeight:800,fontSize:18,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{activeTrip.name}</div>
-          
-          {/* VERTICAL ELLIPSIS (⋮) */}
           <div onClick={() => setShowMenu(true)}
-            style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:900,letterSpacing:"1px",flexShrink:0}}>
+            style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:900,flexShrink:0}}>
             ⋮
           </div>
         </div>
 
-        {/* Scrollable Trip Content */}
+        {/* Content */}
         <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
-          {/* Trip Summary Card */}
           <div className="card" style={{background:"linear-gradient(135deg, #065f46, #0d7c59)",color:"#fff",border:"none",padding:18}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
               <div>
@@ -1168,7 +1223,6 @@ function TripsView({ db, save, logAction }) {
               </div>
             </div>
 
-            {/* Individual Balances Preview */}
             <div style={{borderTop:"1px solid rgba(255,255,255,0.2)",paddingTop:10,display:"flex",flexWrap:"wrap",gap:8}}>
               {activeTrip.members.map(m => {
                 const net = tripBalances[m] ? tripBalances[m].net : 0;
@@ -1185,7 +1239,6 @@ function TripsView({ db, save, logAction }) {
             </div>
           </div>
 
-          {/* Quick Action Pills */}
           <div style={{display:"flex",gap:8,marginBottom:16}}>
             <button onClick={openNewExpense} className="btn-pill" style={{flex:1,background:NAVY,color:"#fff",fontSize:13}}>
               + Add Expense
@@ -1198,7 +1251,6 @@ function TripsView({ db, save, logAction }) {
             </button>
           </div>
 
-          {/* Expenses List */}
           <div style={{fontWeight:800,fontSize:15,marginBottom:10,color:"#333",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span>Expenses</span>
             <span style={{fontSize:12,color:"#888"}}>{activeTrip.expenses.length} total</span>
@@ -1208,7 +1260,7 @@ function TripsView({ db, save, logAction }) {
             <div style={{textAlign:"center",padding:"50px 20px",color:"#aaa"}}>
               <div style={{fontSize:48,marginBottom:12}}>💸</div>
               <div style={{fontWeight:700,fontSize:16,color:"#666",marginBottom:4}}>No Expenses Yet</div>
-              <div style={{fontSize:13}}>Tap "+ Add Expense" or use the (⋮) menu to add an expense.</div>
+              <div style={{fontSize:13}}>Tap "+ Add Expense" or options menu to record spending.</div>
             </div>
           ) : (
             activeTrip.expenses.map(ex => (
@@ -1230,7 +1282,7 @@ function TripsView({ db, save, logAction }) {
           )}
         </div>
 
-        {/* ── VERTICAL ELLIPSIS (⋮) ACTION MENU ── */}
+        {/* Options Modal */}
         <Modal open={showMenu} onClose={() => setShowMenu(false)} title={`${activeTrip.name} — Options`}>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {[
@@ -1259,7 +1311,7 @@ function TripsView({ db, save, logAction }) {
           </div>
         </Modal>
 
-        {/* ── MANAGE MEMBERS MODAL ── */}
+        {/* Members Modal */}
         <Modal open={showMembers} onClose={() => { setShowMembers(false); setMemberErr(""); }} title="Manage Members">
           <span style={lbl}>Add New Member</span>
           <div style={{display:"flex",gap:8,marginTop:6}}>
@@ -1297,7 +1349,7 @@ function TripsView({ db, save, logAction }) {
           </button>
         </Modal>
 
-        {/* ── ADD / EDIT EXPENSE MODAL ── */}
+        {/* Add/Edit Expense Modal */}
         <Modal open={showAddExpense} onClose={() => setShowAddExpense(false)} title={editingExpenseId ? "Edit Expense" : "Add Expense"}>
           <span style={lbl}>Description *</span>
           <input value={expDesc} onChange={e => setExpDesc(e.target.value)} placeholder="e.g. Dinner, Fuel, Hotel..." style={inp}/>
@@ -1355,7 +1407,6 @@ function TripsView({ db, save, logAction }) {
             ))}
           </div>
 
-          {/* EQUAL SPLIT PREVIEW */}
           {expSplitType === "equal" && (
             <div style={{background:"#f9f9f9",borderRadius:10,padding:"12px 14px",marginTop:12,fontSize:13}}>
               {parseFloat(expAmt) > 0 && expParticipants.length > 0 ? (
@@ -1364,16 +1415,15 @@ function TripsView({ db, save, logAction }) {
                     ₹{(parseFloat(expAmt) / expParticipants.length).toFixed(2)} each ({expParticipants.length} people)
                   </div>
                   <div style={{fontSize:11,color:"#666"}}>
-                    Rounding is automatically applied so shares sum up exactly to ₹{expAmt}.
+                    Exact penny rounding guaranteed to total ₹{expAmt}.
                   </div>
                 </>
               ) : (
-                <div style={{color:"#888"}}>Enter amount and select participants to see equal shares.</div>
+                <div style={{color:"#888"}}>Enter amount and participants to calculate.</div>
               )}
             </div>
           )}
 
-          {/* MANUAL SPLIT INPUTS */}
           {expSplitType === "manual" && (
             <div style={{marginTop:12}}>
               <div style={{
@@ -1382,10 +1432,10 @@ function TripsView({ db, save, logAction }) {
                 color: Math.abs(manualDiff) < 0.01 ? GREEN : manualDiff > 0 ? "#f57c00" : "#c62828"
               }}>
                 {Math.abs(manualDiff) < 0.01
-                  ? "✓ Perfectly balanced (Sum = Total)"
+                  ? "✓ Perfectly balanced"
                   : manualDiff > 0
-                  ? `Remaining to assign: ₹${manualDiff}`
-                  : `Over-assigned by ₹${Math.abs(manualDiff)}`}
+                  ? `Remaining: ₹${manualDiff}`
+                  : `Over-assigned: ₹${Math.abs(manualDiff)}`}
               </div>
 
               <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:180,overflowY:"auto"}}>
@@ -1410,13 +1460,13 @@ function TripsView({ db, save, logAction }) {
             className="btn-pill" style={{
               width:"100%",marginTop:20,padding:14,fontSize:15,
               background: (!expDesc.trim() || !(parseFloat(expAmt) > 0) || expParticipants.length === 0 || (expSplitType === "manual" && Math.abs(manualDiff) > 0.01)) ? "#ccc" : NAVY,
-              color:"#fff",cursor: (!expDesc.trim() || !(parseFloat(expAmt) > 0) || expParticipants.length === 0 || (expSplitType === "manual" && Math.abs(manualDiff) > 0.01)) ? "not-allowed" : "pointer"
+              color:"#fff",cursor: "pointer"
             }}>
             Save Expense
           </button>
         </Modal>
 
-        {/* ── EXPENSE DETAIL MODAL ── */}
+        {/* Detail Modal */}
         <Modal open={!!selectedExpense} onClose={() => setSelectedExpense(null)} title="Expense Details">
           {selectedExpense && (
             <div>
@@ -1452,10 +1502,10 @@ function TripsView({ db, save, logAction }) {
           )}
         </Modal>
 
-        {/* ── BALANCES MODAL ── */}
+        {/* Balances Modal */}
         <Modal open={showBalances} onClose={() => setShowBalances(false)} title="Trip Balances">
           <p style={{fontSize:13,color:"#666",marginBottom:16}}>
-            Net balance = (Total Amount Paid) − (Total Share Owed) across all expenses.
+            Net balance = (Total Amount Paid) − (Total Share Owed).
           </p>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {activeTrip.members.map(m => {
@@ -1487,16 +1537,16 @@ function TripsView({ db, save, logAction }) {
           </button>
         </Modal>
 
-        {/* ── SETTLEMENT MODAL ── */}
+        {/* Settlement Plan Modal */}
         <Modal open={showSettlement} onClose={() => setShowSettlement(false)} title="Settlement Plan">
           <p style={{fontSize:13,color:"#666",marginBottom:16}}>
-            Minimized payment transactions to settle all debts in this trip:
+            Minimized payment transactions to clear all debts:
           </p>
           {settlementPayments.length === 0 ? (
             <div style={{textAlign:"center",padding:"40px 20px",color:GREEN}}>
               <div style={{fontSize:42,marginBottom:8}}>🎉</div>
               <div style={{fontWeight:800,fontSize:16}}>All Balances Settled!</div>
-              <div style={{fontSize:13,color:"#666",marginTop:4}}>No one owes anyone money in this trip.</div>
+              <div style={{fontSize:13,color:"#666",marginTop:4}}>No one owes money in this trip.</div>
             </div>
           ) : (
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -1519,7 +1569,7 @@ function TripsView({ db, save, logAction }) {
           </button>
         </Modal>
 
-        {/* ── EDIT TRIP NAME MODAL ── */}
+        {/* Edit Name Modal */}
         <Modal open={showEditTrip} onClose={() => setShowEditTrip(false)} title="Edit Trip Name" center>
           <span style={lbl}>Trip Name</span>
           <input value={editTripName} onChange={e => setEditTripName(e.target.value)} style={inp}/>
@@ -1536,7 +1586,7 @@ function TripsView({ db, save, logAction }) {
     );
   }
 
-  // ── TRIPS LIST VIEW ──
+  // Trips List View
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#f7f8fa"}}>
       <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
@@ -1552,27 +1602,28 @@ function TripsView({ db, save, logAction }) {
             <div style={{fontSize:56,marginBottom:16}}>✈️</div>
             <div style={{fontWeight:800,fontSize:18,color:"#444",marginBottom:6}}>No Trips Created</div>
             <div style={{fontSize:13,color:"#888",maxWidth:260,margin:"0 auto 20px"}}>
-              Create trips, invite members, record group expenses, and calculate settlements.
+              Create a trip to manage group expenses, split bills, and calculate settlements easily.
             </div>
-            <button onClick={() => setShowAddTrip(true)} className="btn-pill" style={{background:NAVY,color:"#fff",padding:"12px 24px"}}>
+            <button onClick={() => setShowAddTrip(true)} className="btn-pill" style={{background:NAVY,color:"#fff"}}>
               + Create First Trip
             </button>
           </div>
         ) : (
           trips.map(t => {
-            const spent = t.expenses.reduce((s, e) => s + e.amount, 0);
+            const spent = (t.expenses || []).reduce((s, e) => s + e.amount, 0);
             return (
-              <div key={t.id} className="card" onClick={() => setActiveTripId(t.id)}
-                style={{cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",padding:16}}>
-                <div>
-                  <div style={{fontSize:17,fontWeight:800,color:"#1a1a1a",marginBottom:4}}>{t.name}</div>
-                  <div style={{fontSize:12,color:"#757575"}}>
-                    {t.members.length} Members • {t.expenses.length} Expenses • {fmtDate(new Date(t.createdAt).toISOString().split('T')[0])}
-                  </div>
+              <div key={t.id} className="card" onClick={() => setActiveTripId(t.id)} style={{cursor:"pointer"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div style={{fontWeight:800,fontSize:17,color:"#1a1a1a"}}>{t.name}</div>
+                  <span style={{fontSize:16,color:"#bbb"}}>›</span>
                 </div>
-                <div style={{textAlign:"right"}}>
-                  <div style={{fontWeight:900,fontSize:16,color:NAVY}}>{fmtAmt(spent)}</div>
-                  <div style={{fontSize:11,color:"#888"}}>Total Spent</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}>
+                  <div style={{fontSize:12,color:"#757575"}}>
+                    {(t.members || []).length} Members • {(t.expenses || []).length} Expenses
+                  </div>
+                  <div style={{fontWeight:800,fontSize:16,color:NAVY}}>
+                    {fmtAmt(spent)}
+                  </div>
                 </div>
               </div>
             );
@@ -1582,8 +1633,8 @@ function TripsView({ db, save, logAction }) {
 
       <Modal open={showAddTrip} onClose={() => setShowAddTrip(false)} title="Create New Trip" center>
         <span style={lbl}>Trip Name *</span>
-        <input value={tripName} onChange={e => setTripName(e.target.value)} placeholder="e.g. Goa Trip, College Trek..." style={inp} autoFocus/>
-        <button onClick={createTrip} className="btn-pill" style={{width:"100%",background:NAVY,color:"#fff",marginTop:20,padding:14}}>
+        <input value={tripName} onChange={e => setTripName(e.target.value)} placeholder="e.g. Goa Trip, Manali Weekend, Office Lunch" style={inp} autoFocus/>
+        <button onClick={createTrip} className="btn-pill" style={{width:"100%",background:NAVY,color:"#fff",marginTop:20,padding:13}}>
           Create Trip
         </button>
       </Modal>
@@ -1592,805 +1643,603 @@ function TripsView({ db, save, logAction }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// 3. LEETCODE-STYLE ACTIVITY CALENDAR / HEATMAP
+// 3. ACTIVITY HEATMAP VIEW (USING REAL APPLICATION DATA)
 // ══════════════════════════════════════════════════════════════
 
-function ActivityCalendarView({ db }) {
-  const [selectedDay, setSelectedDay] = useState(null);
+function ActivityHeatmapView({ db }) {
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedDate, setSelectedDate] = useState(null);
 
-  // Generate 53 weeks (371 days) back from today
-  const calendarData = useMemo(() => {
-    const today = new Date();
-    // Normalize to end of today
-    today.setHours(23, 59, 59, 999);
+  // Derive real activity map from transactions, settlements, trips, expenses, and logs
+  const { activityMap, detailMap, availableYears } = useMemo(() => {
+    const actMap = {};   // "YYYY-MM-DD" -> count
+    const detMap = {};   // "YYYY-MM-DD" -> item[]
+    const yearsSet = new Set([new Date().getFullYear()]);
 
-    // Collect activities per date
-    const dayMap = {};
+    const addAct = (dateStr, type, title, detail) => {
+      if (!dateStr || typeof dateStr !== "string") return;
+      const d = dateStr.slice(0, 10);
+      const yr = parseInt(d.split("-")[0]);
+      if (!isNaN(yr)) yearsSet.add(yr);
 
-    // 1. Transactions
-    Object.values(db.transactions || {}).forEach(txs => {
-      txs.forEach(t => {
-        if (!dayMap[t.date]) dayMap[t.date] = { count: 0, amount: 0, items: [] };
-        dayMap[t.date].count += 1;
-        dayMap[t.date].amount += t.amount;
-        dayMap[t.date].items.push({ type: "Ledger", desc: `${t.type === "debit" ? "Gave" : "Got"} ${fmtAmt(t.amount)}`, note: t.note });
-      });
+      actMap[d] = (actMap[d] || 0) + 1;
+      if (!detMap[d]) detMap[d] = [];
+      detMap[d].push({ type, title, detail });
+    };
+
+    // 1. Logs
+    (db.logs || []).forEach(l => {
+      addAct(l.date || todayStr(), "Log", l.title, l.details);
     });
 
-    // 2. Trip Expenses
-    (db.trips || []).forEach(trip => {
-      (trip.expenses || []).forEach(ex => {
-        if (!dayMap[ex.date]) dayMap[ex.date] = { count: 0, amount: 0, items: [] };
-        dayMap[ex.date].count += 1;
-        dayMap[ex.date].amount += ex.amount;
-        dayMap[ex.date].items.push({ type: "Trip", desc: `${trip.name}: ${ex.description} (${fmtAmt(ex.amount)})`, note: `Paid by ${ex.paidBy}` });
-      });
-    });
+    // 2. Customer & Supplier Transactions
+    Object.entries(db.transactions || {}).forEach(([entityId, txs]) => {
+      const cust = (db.customers || []).find(c => c.id === entityId);
+      const supp = (db.suppliers || []).find(s => s.id === entityId);
+      const name = cust ? cust.name : supp ? supp.name : "Account";
 
-    // 3. Build 53 columns (weeks), each 7 days (Sun-Sat: 0-6)
-    // Find last Saturday or Sunday
-    const days = [];
-    const totalDays = 53 * 7;
-    // Start from today and go back
-    for (let i = totalDays - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(today.getDate() - i);
-      const iso = d.toISOString().split("T")[0];
-      const entry = dayMap[iso] || { count: 0, amount: 0, items: [] };
-      days.push({
-        date: iso,
-        dateObj: d,
-        count: entry.count,
-        amount: entry.amount,
-        items: entry.items
-      });
-    }
-
-    // Stats calculations
-    let totalActivities = 0;
-    let activeDays = 0;
-    let maxStreak = 0;
-    let currentStreak = 0;
-    let tempStreak = 0;
-
-    days.forEach(day => {
-      if (day.count > 0) {
-        totalActivities += day.count;
-        activeDays += 1;
-        tempStreak += 1;
-        if (tempStreak > maxStreak) maxStreak = tempStreak;
-      } else {
-        tempStreak = 0;
-      }
-    });
-
-    // Current streak (working back from today)
-    for (let i = days.length - 1; i >= 0; i--) {
-      if (days[i].count > 0) currentStreak++;
-      else if (i === days.length - 1) continue; // Allow today to have 0 yet
-      else break;
-    }
-
-    // Group into 53 weeks
-    const weeks = [];
-    for (let w = 0; w < 53; w++) {
-      weeks.push(days.slice(w * 7, (w + 1) * 7));
-    }
-
-    // Month headers
-    const monthLabels = [];
-    let lastMonth = -1;
-    weeks.forEach((week, wIdx) => {
-      const firstDay = week[0].dateObj;
-      const m = firstDay.getMonth();
-      if (m !== lastMonth) {
-        monthLabels.push({
-          weekIdx: wIdx,
-          label: firstDay.toLocaleString("default", { month: "short" })
+      (txs || []).forEach(tx => {
+        addAct(tx.date, "Transaction", `${tx.type === "debit" ? "Gave" : "Got"} ${fmtAmt(tx.amount)}`, `With ${name}${tx.note ? " (" + tx.note + ")" : ""}`);
+        (tx.settlements || []).forEach(s => {
+          addAct(s.date, "Settlement", `Settled ${fmtAmt(s.amount)}`, `Payment for ${name}${s.note ? " (" + s.note + ")" : ""}`);
         });
-        lastMonth = m;
-      }
+      });
     });
 
-    return { weeks, monthLabels, totalActivities, activeDays, maxStreak, currentStreak };
+    // 3. Trips & Expenses
+    (db.trips || []).forEach(t => {
+      if (t.createdAt) {
+        const d = new Date(t.createdAt).toISOString().split("T")[0];
+        addAct(d, "Trip", `Created Trip "${t.name}"`, `${(t.members||[]).length} members`);
+      }
+      (t.expenses || []).forEach(e => {
+        addAct(e.date || todayStr(), "Trip Expense", `${e.description} (${fmtAmt(e.amount)})`, `Paid by ${e.paidBy} in "${t.name}"`);
+      });
+    });
+
+    return {
+      activityMap: actMap,
+      detailMap: detMap,
+      availableYears: Array.from(yearsSet).sort((a,b) => b-a)
+    };
   }, [db]);
 
-  const getColor = (count) => {
-    if (!count) return "#262626";
-    if (count <= 1) return "#0e4429";
-    if (count <= 3) return "#006d32";
-    if (count <= 5) return "#26a641";
-    return "#39d353";
+  // Streaks & Stats Calculation
+  const stats = useMemo(() => {
+    let yearTotal = 0;
+    let activeDaysCount = 0;
+
+    Object.entries(activityMap).forEach(([d, count]) => {
+      if (d.startsWith(String(selectedYear))) {
+        yearTotal += count;
+        activeDaysCount++;
+      }
+    });
+
+    // Compute streaks across full history up to today
+    const activeDates = Object.keys(activityMap).sort();
+    let currentStreak = 0;
+    let longestStreak = 0;
+
+    if (activeDates.length > 0) {
+      let tempStreak = 1;
+      longestStreak = 1;
+
+      for (let i = 1; i < activeDates.length; i++) {
+        const prev = new Date(activeDates[i-1]);
+        const curr = new Date(activeDates[i]);
+        const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+          tempStreak++;
+        } else if (diffDays > 1) {
+          tempStreak = 1;
+        }
+        if (tempStreak > longestStreak) longestStreak = tempStreak;
+      }
+
+      // Check current streak relative to today
+      const today = todayStr();
+      const lastActive = activeDates[activeDates.length - 1];
+      const diffToday = Math.round((new Date(today) - new Date(lastActive)) / (1000 * 60 * 60 * 24));
+
+      if (diffToday <= 1) {
+        currentStreak = tempStreak;
+      } else {
+        currentStreak = 0;
+      }
+    }
+
+    return { yearTotal, activeDaysCount, currentStreak, longestStreak };
+  }, [activityMap, selectedYear]);
+
+  // Color Intensity mapping
+  const getColor = count => {
+    if (!count) return "#ebedf0";
+    if (count === 1) return "#d1fae5";
+    if (count <= 3) return "#6ee7b7";
+    if (count <= 5) return "#059669";
+    return "#065f46";
   };
 
-  return (
-    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#1a1a1a",color:"#e8e8e8"}}>
-      <div style={{background:"#242424",borderBottom:"1px solid #333",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:16}}>
-        <div style={{fontSize:20,fontWeight:900,letterSpacing:"0.5px",color:"#39d353"}}>ACTIVITY CALENDAR</div>
-        <div style={{fontSize:12,color:"#888",marginTop:2}}>Contribution-style financial record over past 1 year</div>
-      </div>
+  // Build calendar months grid for selected year
+  const monthsData = useMemo(() => {
+    const months = [];
+    for (let m = 0; m < 12; m++) {
+      const firstDay = new Date(selectedYear, m, 1);
+      const daysInMonth = new Date(selectedYear, m + 1, 0).getDate();
+      const startDayOfWeek = firstDay.getDay(); // 0 = Sun
 
-      <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
-        {/* Stats Grid */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-          {[
-            ["Total Activities", calendarData.totalActivities, "#39d353"],
-            ["Active Days", calendarData.activeDays, "#26a641"],
-            ["Max Streak", `${calendarData.maxStreak} days`, "#f57c00"],
-            ["Current Streak", `${calendarData.currentStreak} days`, "#16a085"]
-          ].map(([label, val, color]) => (
-            <div key={label} className="card" style={{background:"#242424",border:"1px solid #333",marginBottom:0,padding:14}}>
-              <div style={{fontSize:10,color:"#888",textTransform:"uppercase",fontWeight:700,letterSpacing:"0.06em",marginBottom:4}}>{label}</div>
-              <div style={{fontSize:20,fontWeight:900,color}}>{val}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* LeetCode Heatmap Grid Card */}
-        <div className="card" style={{background:"#242424",border:"1px solid #333",padding:"16px 14px",overflowX:"auto"}}>
-          <div style={{fontSize:13,fontWeight:700,marginBottom:12,color:"#ddd",display:"flex",justifyContent:"space-between"}}>
-            <span>365 Days Activity Grid</span>
-            <span style={{fontSize:11,color:"#888"}}>Tap day for details</span>
-          </div>
-
-          <div style={{minWidth:640}}>
-            {/* Month Header Row */}
-            <div style={{display:"flex",position:"relative",height:18,marginBottom:4}}>
-              {calendarData.monthLabels.map((m, idx) => (
-                <div key={idx} style={{
-                  position:"absolute",
-                  left: m.weekIdx * 14,
-                  fontSize:10,
-                  fontWeight:700,
-                  color:"#888"
-                }}>
-                  {m.label}
-                </div>
-              ))}
-            </div>
-
-            {/* Grid (7 rows, 53 cols) */}
-            <div style={{display:"flex",gap:3}}>
-              {calendarData.weeks.map((week, wIdx) => (
-                <div key={wIdx} style={{display:"flex",flexDirection:"column",gap:3}}>
-                  {week.map((day, dIdx) => (
-                    <div
-                      key={dIdx}
-                      onClick={() => setSelectedDay(day)}
-                      title={`${day.date}: ${day.count} activities`}
-                      style={{
-                        width:11,
-                        height:11,
-                        borderRadius:2,
-                        background: getColor(day.count),
-                        cursor:"pointer",
-                        border: selectedDay && selectedDay.date === day.date ? "1.5px solid #fff" : "none"
-                      }}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-
-            {/* Legend */}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12,fontSize:10,color:"#888"}}>
-              <span>Less</span>
-              <div style={{display:"flex",gap:3,alignItems:"center"}}>
-                {[0, 1, 3, 5, 7].map(c => (
-                  <div key={c} style={{width:11, height:11, borderRadius:2, background: getColor(c)}}/>
-                ))}
-              </div>
-              <span>More</span>
-            </div>
-          </div>
-        </div>
-
-        {/* DAY DETAILS POPUP */}
-        {selectedDay && (
-          <div className="card" style={{background:"#242424",border:"1px solid #39d353",marginTop:12}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-              <div style={{fontWeight:800,fontSize:15,color:"#39d353"}}>{fmtDate(selectedDay.date)}</div>
-              <span onClick={() => setSelectedDay(null)} style={{cursor:"pointer",color:"#888",fontSize:14}}>✕</span>
-            </div>
-            <div style={{fontSize:12,color:"#aaa",marginBottom:10}}>
-              {selectedDay.count} activities • Total volume: {fmtAmt(selectedDay.amount)}
-            </div>
-            {selectedDay.items.length === 0 ? (
-              <div style={{fontSize:12,color:"#666",fontStyle:"italic"}}>No transactions recorded on this day.</div>
-            ) : (
-              <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                {selectedDay.items.map((item, idx) => (
-                  <div key={idx} style={{background:"#1c1c1c",borderRadius:8,padding:"8px 10px",fontSize:12,borderLeft:"3px solid #39d353"}}>
-                    <div style={{fontWeight:700,color:"#e8e8e8"}}>[{item.type}] {item.desc}</div>
-                    {item.note && <div style={{fontSize:11,color:"#888",marginTop:2}}>{item.note}</div>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════
-// 4. STRUCTURED ACTIVITY LOGS
-// ══════════════════════════════════════════════════════════════
-
-function ActivityLogsView({ db }) {
-  const [filter, setFilter] = useState("All");
-  const logs = db.logs || [];
-
-  const filters = ["All", "Customer", "Supplier", "Transaction", "Trip", "Expense", "Backup"];
-
-  const filteredLogs = logs.filter(l => {
-    if (filter === "All") return true;
-    return (l.type || "").toLowerCase().includes(filter.toLowerCase());
-  });
+      const days = [];
+      // Empty padding cells before month starts
+      for (let p = 0; p < startDayOfWeek; p++) {
+        days.push(null);
+      }
+      // Day cells
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${selectedYear}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        days.push({
+          day: d,
+          dateStr: dateStr,
+          count: activityMap[dateStr] || 0
+        });
+      }
+      months.push({
+        monthName: new Date(selectedYear, m, 1).toLocaleString('en-IN', { month: 'short' }),
+        days
+      });
+    }
+    return months;
+  }, [selectedYear, activityMap]);
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#f7f8fa"}}>
-      <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:16}}>
-        <div style={{fontSize:20,fontWeight:900,letterSpacing:"0.5px"}}>ACTIVITY LOGS</div>
-        <div style={{fontSize:12,color:"rgba(255,255,255,0.8)",marginTop:2}}>Local structured history of application events</div>
-      </div>
-
-      <div style={{padding:"12px 16px 0",display:"flex",gap:8,overflowX:"auto",flexShrink:0}}>
-        {filters.map(f => (
-          <button key={f} onClick={() => setFilter(f)} className="btn-pill" style={{
-            background: filter === f ? NAVY : "#e5e7eb",
-            color: filter === f ? "#fff" : "#4b5563",
-            fontSize:12,padding:"6px 14px",whiteSpace:"nowrap"
-          }}>
-            {f}
-          </button>
-        ))}
+      {/* Header */}
+      <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:900,letterSpacing:"0.5px"}}>ACTIVITY HEATMAP</div>
+          <div style={{fontSize:11,opacity:0.8,marginTop:2}}>Real application activity matrix</div>
+        </div>
+        <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
+          style={{background:"rgba(255,255,255,0.2)",color:"#fff",border:"none",borderRadius:8,padding:"6px 10px",fontWeight:700,fontSize:13,outline:"none"}}>
+          {availableYears.map(y => <option key={y} value={y} style={{color:"#333"}}>{y}</option>)}
+        </select>
       </div>
 
       <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
-        {filteredLogs.length === 0 ? (
-          <div style={{textAlign:"center",padding:"60px 20px",color:"#aaa"}}>
-            <div style={{fontSize:48,marginBottom:12}}>📋</div>
-            <div style={{fontWeight:700,fontSize:16,color:"#666"}}>No Logs Found</div>
+        {/* Streak Metrics Cards */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+          <div className="card" style={{padding:12,textAlign:"center",margin:0}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Total Actions ({selectedYear})</div>
+            <div style={{fontSize:22,fontWeight:900,color:NAVY,marginTop:2}}>{stats.yearTotal}</div>
           </div>
-        ) : (
-          filteredLogs.map(l => (
-            <div key={l.id} className="card" style={{display:"flex",alignItems:"center",gap:12,padding:12}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:l.status==="success"?GREEN:"#c62828"}}/>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:800,fontSize:14,color:"#1a1a1a"}}>{l.type}</div>
-                <div style={{fontSize:12,color:"#555",marginTop:2}}>{l.detail}</div>
-                <div style={{fontSize:11,color:"#888",marginTop:4}}>
-                  {new Date(l.timestamp).toLocaleString("en-IN")} • {l.device || "Android"}
+          <div className="card" style={{padding:12,textAlign:"center",margin:0}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Active Days</div>
+            <div style={{fontSize:22,fontWeight:900,color:GREEN,marginTop:2}}>{stats.activeDaysCount}</div>
+          </div>
+          <div className="card" style={{padding:12,textAlign:"center",margin:0}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Current Streak</div>
+            <div style={{fontSize:22,fontWeight:900,color:AMBER,marginTop:2}}>{stats.currentStreak} days 🔥</div>
+          </div>
+          <div className="card" style={{padding:12,textAlign:"center",margin:0}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Longest Streak</div>
+            <div style={{fontSize:22,fontWeight:900,color:"#6a1b9a",marginTop:2}}>{stats.longestStreak} days ⚡</div>
+          </div>
+        </div>
+
+        {/* Intensity Legend */}
+        <div className="card" style={{padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span style={{fontSize:11,fontWeight:700,color:"#666"}}>Activity Intensity</span>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:10,color:"#888"}}>Less</span>
+            {[0, 1, 3, 5, 8].map((lvl, i) => (
+              <div key={i} style={{width:14,height:14,borderRadius:3,background:getColor(lvl)}}/>
+            ))}
+            <span style={{fontSize:10,color:"#888"}}>More</span>
+          </div>
+        </div>
+
+        {/* Months Calendar Grid */}
+        <div className="card" style={{padding:14}}>
+          <div style={{fontWeight:800,fontSize:14,marginBottom:12,color:"#333"}}>
+            {selectedYear} Activity Calendar
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(130px, 1fr))",gap:14}}>
+            {monthsData.map((m, mIdx) => (
+              <div key={mIdx} style={{background:"#f9f9f9",borderRadius:10,padding:8,border:"1px solid #eee"}}>
+                <div style={{fontSize:11,fontWeight:800,color:NAVY,marginBottom:6,textAlign:"center"}}>{m.monthName}</div>
+                {/* Weekday Labels */}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7, 1fr)",gap:2,textAlign:"center",marginBottom:4}}>
+                  {["S","M","T","W","T","F","S"].map((d, i) => (
+                    <span key={i} style={{fontSize:8,fontWeight:700,color:"#aaa"}}>{d}</span>
+                  ))}
+                </div>
+                {/* Day Cells */}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7, 1fr)",gap:3}}>
+                  {m.days.map((d, dIdx) => {
+                    if (!d) return <div key={dIdx} style={{height:13}}/>;
+                    return (
+                      <div key={dIdx} onClick={() => d.count > 0 && setSelectedDate(d.dateStr)}
+                        className="heatmap-day"
+                        title={`${d.dateStr}: ${d.count} activities`}
+                        style={{
+                          height:13,
+                          background: getColor(d.count),
+                          cursor: d.count > 0 ? "pointer" : "default"
+                        }}/>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
-          ))
-        )}
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* Day Details Modal */}
+      <Modal open={!!selectedDate} onClose={() => setSelectedDate(null)} title={`Activity on ${fmtDate(selectedDate)}`}>
+        {selectedDate && (
+          <div>
+            <div style={{fontSize:12,color:"#757575",marginBottom:12,fontWeight:600}}>
+              {detailMap[selectedDate] ? detailMap[selectedDate].length : 0} total actions recorded
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:300,overflowY:"auto"}}>
+              {(detailMap[selectedDate] || []).map((item, idx) => (
+                <div key={idx} style={{padding:"10px 12px",borderRadius:10,background:"#f5f5f5",borderLeft:`4px solid ${NAVY}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+                    <span style={{fontWeight:800,fontSize:13,color:"#1a1a1a"}}>{item.title}</span>
+                    <span style={{fontSize:10,fontWeight:700,background:NAVY_LIGHT,color:NAVY,padding:"2px 6px",borderRadius:4}}>
+                      {item.type}
+                    </span>
+                  </div>
+                  <div style={{fontSize:12,color:"#666"}}>{item.detail}</div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setSelectedDate(null)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:16}}>
+              Close
+            </button>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════
-// 5. SECURITY & ENCRYPTED BACKUP
+// 4. SETTINGS & APP SECURITY VIEW
 // ══════════════════════════════════════════════════════════════
 
-function SecurityView({ db, save, logAction, onTriggerBackupModal }) {
-  const settings = db.settings || INIT.settings;
+function SettingsView({ db, save, logAction }) {
+  const [pinInput, setPinInput] = useState("");
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [restoreErr, setRestoreErr] = useState("");
+
+  const settings = db.settings || { appLockEnabled: false, pin: null, biometricsEnabled: false };
 
   const toggleAppLock = () => {
-    const next = { ...db, settings: { ...settings, appLockEnabled: !settings.appLockEnabled } };
-    save(next);
-    logAction("Security Changed", `App Lock ${!settings.appLockEnabled ? "Enabled" : "Disabled"}`);
+    if (settings.appLockEnabled) {
+      save({ ...db, settings: { ...settings, appLockEnabled: false, pin: null } });
+      logAction("Security", "Disabled App Lock");
+    } else {
+      setShowPinModal(true);
+    }
+  };
+
+  const setPin = () => {
+    if (pinInput.length !== 4 || isNaN(pinInput)) {
+      alert("PIN must be 4 digits!");
+      return;
+    }
+    save({ ...db, settings: { ...settings, appLockEnabled: true, pin: pinInput } });
+    logAction("Security", "Enabled App Lock with PIN");
+    setShowPinModal(false);
+    setPinInput("");
   };
 
   const toggleBiometrics = () => {
-    if (window.AndroidBridge && window.AndroidBridge.authenticateBiometric) {
-      window.onBiometricResult = (success, msg) => {
-        if (success) {
-          const next = { ...db, settings: { ...settings, biometricsEnabled: !settings.biometricsEnabled } };
-          save(next);
-          logAction("Biometrics Changed", `Biometrics ${!settings.biometricsEnabled ? "Enabled" : "Disabled"}`);
+    const next = !settings.biometricsEnabled;
+    save({ ...db, settings: { ...settings, biometricsEnabled: next } });
+    logAction("Security", `${next ? "Enabled" : "Disabled"} Biometric Unlock`);
+  };
+
+  // Export JSON file backup
+  const exportBackup = () => {
+    const jsonStr = JSON.stringify(db, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fireball_backup_${todayStr()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    logAction("Backup", "Exported application backup JSON file");
+  };
+
+  // Restore JSON backup
+  const importBackup = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = event => {
+      try {
+        const parsed = JSON.parse(event.target.result);
+        if (parsed && (parsed.customers || parsed.suppliers || parsed.trips)) {
+          save({ ...INIT, ...parsed });
+          logAction("Restore", "Restored data from JSON backup file");
+          alert("Backup restored successfully!");
+          setRestoreErr("");
         } else {
-          alert("Biometric verification failed: " + msg);
+          setRestoreErr("Invalid backup file format!");
         }
-      };
-      window.AndroidBridge.authenticateBiometric();
-    } else {
-      alert("Biometrics not supported on this device/environment.");
-    }
+      } catch (err) {
+        setRestoreErr("Error parsing backup JSON file!");
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#f7f8fa"}}>
-      <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:16}}>
-        <div style={{fontSize:20,fontWeight:900,letterSpacing:"0.5px"}}>SECURITY & BACKUP</div>
-        <div style={{fontSize:12,color:"rgba(255,255,255,0.8)",marginTop:2}}>Protection, device biometrics, and encrypted backup</div>
+      <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:16,flexShrink:0}}>
+        <div style={{fontSize:20,fontWeight:900,letterSpacing:"0.5px"}}>SETTINGS</div>
+        <div style={{fontSize:11,opacity:0.8,marginTop:2}}>Security & Data Backup</div>
       </div>
 
       <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
-        <div className="card">
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        {/* Security Section */}
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8}}>
+          App Security
+        </div>
+        <div className="card" style={{padding:"14px 16px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
             <div>
-              <div style={{fontWeight:800,fontSize:15}}>App Lock</div>
-              <div style={{fontSize:12,color:"#757575"}}>Require authentication to open Fire Ball</div>
+              <div style={{fontWeight:700,fontSize:15}}>App Lock (PIN)</div>
+              <div style={{fontSize:12,color:"#757575"}}>Require 4-digit PIN to open application</div>
             </div>
-            <div className={`toggle-switch ${settings.appLockEnabled ? 'on' : ''}`} onClick={toggleAppLock}/>
+            <div className={`toggle-switch ${settings.appLockEnabled ? "on" : ""}`} onClick={toggleAppLock}/>
+          </div>
+
+          {settings.appLockEnabled && (
+            <div style={{borderTop:"1px solid #eee",paddingTop:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontWeight:700,fontSize:15}}>Biometric Authentication</div>
+                <div style={{fontSize:12,color:"#757575"}}>Use Fingerprint / Face Unlock via Android</div>
+              </div>
+              <div className={`toggle-switch ${settings.biometricsEnabled ? "on" : ""}`} onClick={toggleBiometrics}/>
+            </div>
+          )}
+        </div>
+
+        {/* Backup & Restore Section */}
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8,marginTop:16}}>
+          Data Backup & Restore
+        </div>
+        <div className="card" style={{padding:"16px"}}>
+          <div style={{marginBottom:14}}>
+            <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>Export Backup File</div>
+            <div style={{fontSize:12,color:"#757575",marginBottom:10}}>Save all customers, suppliers, trips, and transactions to a local file</div>
+            <button onClick={exportBackup} className="btn-pill" style={{background:NAVY,color:"#fff",width:"100%",fontSize:14}}>
+              📥 Download Backup (.json)
+            </button>
+          </div>
+
+          <div style={{borderTop:"1px solid #eee",paddingTop:14}}>
+            <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>Restore Backup File</div>
+            <div style={{fontSize:12,color:"#757575",marginBottom:10}}>Load previously saved application backup</div>
+            <label className="btn-pill" style={{background:"#f5f5f5",color:"#333",border:"1.5px solid #ccc",width:"100%",fontSize:14,cursor:"pointer",textAlign:"center",display:"block"}}>
+              📤 Select & Restore File
+              <input type="file" accept=".json" onChange={importBackup} style={{display:"none"}}/>
+            </label>
+            {restoreErr && <div style={{fontSize:11,color:"#c62828",marginTop:8,fontWeight:600}}>{restoreErr}</div>}
           </div>
         </div>
 
-        <div className="card">
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div>
-              <div style={{fontWeight:800,fontSize:15}}>Fingerprint / Face ID</div>
-              <div style={{fontSize:12,color:"#757575"}}>Use device biometrics to unlock</div>
-            </div>
-            <div className={`toggle-switch ${settings.biometricsEnabled ? 'on' : ''}`} onClick={toggleBiometrics}/>
-          </div>
+        {/* Storage Summary */}
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8,marginTop:16}}>
+          Storage Summary
         </div>
-
-        <div style={{marginTop:24,fontSize:13,fontWeight:700,textTransform:"uppercase",color:"#757575",letterSpacing:"0.06em",marginBottom:10}}>
-          Encrypted Data Backup
-        </div>
-        <div className="card" onClick={onTriggerBackupModal} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:14,padding:16}}>
-          <div style={{fontSize:28}}>🔒</div>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:800,fontSize:15,color:NAVY}}>Encrypted Backup & Restore</div>
-            <div style={{fontSize:12,color:"#757575",marginTop:2}}>
-              AES-GCM 256-bit encrypted file backup. Includes customers, suppliers, trips, and logs.
-            </div>
+        <div className="card" style={{padding:"14px 16px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:13}}>
+            <span style={{color:"#666"}}>Customers Count</span>
+            <span style={{fontWeight:700}}>{(db.customers||[]).length}</span>
           </div>
-          <span style={{fontSize:18,color:"#aaa"}}>›</span>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:13}}>
+            <span style={{color:"#666"}}>Suppliers Count</span>
+            <span style={{fontWeight:700}}>{(db.suppliers||[]).length}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:13}}>
+            <span style={{color:"#666"}}>Trips Count</span>
+            <span style={{fontWeight:700}}>{(db.trips||[]).length}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
+            <span style={{color:"#666"}}>Persistence Layer</span>
+            <span style={{fontWeight:700,color:NAVY}}>AndroidBridge + Storage Fallback</span>
+          </div>
         </div>
       </div>
+
+      {/* Set PIN Modal */}
+      <Modal open={showPinModal} onClose={() => setShowPinModal(false)} title="Set 4-Digit Security PIN" center>
+        <span style={lbl}>Enter 4-Digit PIN *</span>
+        <input type="password" maxLength={4} value={pinInput} onChange={e => setPinInput(e.target.value)} placeholder="••••" style={{...inp, textAlign:"center", fontSize:22, letterSpacing:8}} autoFocus/>
+        <button onClick={setPin} className="btn-pill" style={{width:"100%",background:NAVY,color:"#fff",marginTop:20,padding:13}}>
+          Enable App Lock
+        </button>
+      </Modal>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════
-// 6. MAIN APPLICATION SHELL
+// 5. APP LOCK SCREEN (PIN ENTRY / BIOMETRIC)
+// ══════════════════════════════════════════════════════════════
+
+function AppLockOverlay({ settings, onUnlock }) {
+  const [pin, setPin] = useState("");
+  const [err, setErr] = useState("");
+
+  const verify = (entered) => {
+    if (entered === settings.pin) {
+      onUnlock();
+    } else {
+      setErr("Incorrect PIN!");
+      setPin("");
+    }
+  };
+
+  const handleBiometric = () => {
+    if (window.AndroidBridge && window.AndroidBridge.authenticateBiometric) {
+      try {
+        window.AndroidBridge.authenticateBiometric(success => {
+          if (success) onUnlock();
+        });
+      } catch(e) {}
+    }
+  };
+
+  useEffect(() => {
+    if (settings.biometricsEnabled) {
+      handleBiometric();
+    }
+  }, []);
+
+  return (
+    <div style={{position:"fixed",inset:0,background:NAVY,color:"#fff",zIndex:99999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{fontSize:56,marginBottom:12}}>🔒</div>
+      <div style={{fontSize:22,fontWeight:900,marginBottom:4}}>Fire Ball</div>
+      <div style={{fontSize:13,opacity:0.8,marginBottom:28}}>Enter 4-digit PIN to unlock</div>
+
+      <input type="password" maxLength={4} value={pin}
+        onChange={e => {
+          const v = e.target.value;
+          setPin(v);
+          setErr("");
+          if (v.length === 4) verify(v);
+        }}
+        placeholder="••••"
+        style={{background:"rgba(255,255,255,0.2)",border:"2px solid rgba(255,255,255,0.4)",borderRadius:14,padding:"14px",fontSize:28,color:"#fff",textAlign:"center",width:180,letterSpacing:10,outline:"none",marginBottom:12}}
+        autoFocus/>
+
+      {err && <div style={{color:"#ffcdd2",fontWeight:700,fontSize:13,marginBottom:16}}>{err}</div>}
+
+      {settings.biometricsEnabled && (
+        <button onClick={handleBiometric} className="btn-pill" style={{background:"rgba(255,255,255,0.2)",color:"#fff",marginTop:20}}>
+          👆 Use Fingerprint / Biometrics
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// 6. MAIN APPLICATION ROOT CONTAINER
 // ══════════════════════════════════════════════════════════════
 
 function App() {
-  const [db, setDB] = useState(loadFromAllSources);
-  const [navTab, setNavTab] = useState("accounts"); // accounts, trips, activity, logs, security
-  const [homeSubTab, setHomeSubTab] = useState(0); // 0 = customers, 1 = suppliers
-  const [openEntityId, setOpenEntityId] = useState(null);
-  const [openEntityListKey, setOpenEntityListKey] = useState(null);
+  const [db, setDb] = useState(loadFromAllSources);
+  const [tab, setTab] = useState("customers"); // "customers" | "suppliers" | "trips" | "heatmap" | "settings"
+  const [activeEntityId, setActiveEntityId] = useState(null);
+  const [isLocked, setIsLocked] = useState(() => db.settings && db.settings.appLockEnabled);
 
-  // Delete entries by date modal
-  const [showDeleteByDate, setShowDeleteByDate] = useState(false);
-  const [deleteFrom, setDeleteFrom] = useState("");
-  const [deleteTo, setDeleteTo] = useState("");
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [deleteResult, setDeleteResult] = useState("");
-
-  // Encrypted Backup modal
-  const [showBackup, setShowBackup] = useState(false);
-  const [backupPassword, setBackupPassword] = useState("");
-  const [restorePassword, setRestorePassword] = useState("");
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
-  const [pendingEncryptedPayload, setPendingEncryptedPayload] = useState(null);
-  const [backupErr, setBackupErr] = useState("");
-  const [backupOk, setBackupOk] = useState(false);
-  const [backupSuccessMsg, setBackupSuccessMsg] = useState("");
-  const fileInputRef = useRef(null);
-
-  // Save handler
-  const save = useCallback((next) => {
-    setDB(next);
-    persistAllSources(next);
+  const save = useCallback((nextDb) => {
+    setDb(nextDb);
+    persistAllSources(nextDb);
   }, []);
 
-  const logAction = useCallback((type, detail, status = "success") => {
-    const newLog = {
-      id: uid(),
-      type,
-      detail,
-      status,
-      timestamp: Date.now(),
-      device: "Android Device"
-    };
-    setDB(prev => {
-      const next = { ...prev, logs: [newLog, ...(prev.logs || [])] };
+  const logAction = useCallback((title, details) => {
+    const newLog = { id: uid(), date: todayStr(), timestamp: Date.now(), title, details };
+    setDb(prev => {
+      const next = { ...prev, logs: [newLog, ...(prev.logs || [])].slice(0, 500) };
       persistAllSources(next);
       return next;
     });
   }, []);
 
-  // ── DELETE BY DATE ──
-  function countEntriesByDate() {
-    if (!deleteFrom && !deleteTo) return 0;
-    let count = 0;
-    const from = deleteFrom ? new Date(deleteFrom) : null;
-    const to = deleteTo ? new Date(deleteTo) : null;
-    Object.values(db.transactions || {}).forEach(txs => {
-      txs.forEach(tx => {
-        const d = new Date(tx.date);
-        if ((!from || d >= from) && (!to || d <= to)) count++;
-      });
-    });
-    return count;
+  if (isLocked) {
+    return <AppLockOverlay settings={db.settings} onUnlock={() => setIsLocked(false)}/>;
   }
-
-  function deleteEntriesByDate() {
-    if (!deleteFrom && !deleteTo) return;
-    const from = deleteFrom ? new Date(deleteFrom) : null;
-    const to = deleteTo ? new Date(deleteTo) : null;
-    let count = 0;
-    const newTxs = {};
-    Object.entries(db.transactions || {}).forEach(([id, txs]) => {
-      newTxs[id] = txs.filter(tx => {
-        const d = new Date(tx.date);
-        const inRange = (!from || d >= from) && (!to || d <= to);
-        if (inRange) count++;
-        return !inRange;
-      });
-    });
-    save({ ...db, transactions: newTxs });
-    logAction("Entries Deleted", `Deleted ${count} transactions between ${deleteFrom || 'start'} and ${deleteTo || 'end'}`);
-    setDeleteResult(`Deleted ${count} entr${count === 1 ? "y" : "ies"} successfully.`);
-    setDeleteConfirm(false);
-    setDeleteFrom(""); setDeleteTo("");
-    setTimeout(() => { setDeleteResult(""); setShowDeleteByDate(false); }, 2000);
-  }
-
-  // ── ENCRYPTED BACKUP EXPORT ──
-  async function exportEncryptedBackup() {
-    try {
-      const payload = {
-        customers: db.customers || [],
-        suppliers: db.suppliers || [],
-        transactions: db.transactions || {},
-        trips: db.trips || [],
-        logs: db.logs || [],
-        settings: db.settings || {},
-        exportedAt: new Date().toISOString(),
-        version: "fireball_v2"
-      };
-
-      const password = backupPassword.trim() || "fireball_secure";
-      const encryptedStr = await encryptData(payload, password);
-      const filename = `fireball-backup-${todayStr()}.json`;
-
-      if (window.AndroidBridge && window.AndroidBridge.saveFile) {
-        window.AndroidBridge.saveFile(filename, encryptedStr);
-      } else {
-        const blob = new Blob([encryptedStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = filename;
-        document.body.appendChild(a); a.click();
-        setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
-      }
-      logAction("Backup Exported", `Encrypted backup saved`);
-      setBackupSuccessMsg("Encrypted backup saved successfully!");
-      setBackupOk(true);
-      setTimeout(() => { setBackupOk(false); setShowBackup(false); setBackupPassword(""); }, 2000);
-    } catch (e) {
-      setBackupErr("Export failed: " + e.message);
-    }
-  }
-
-  // ── RESTORE BACKUP ──
-  function handleFileImport(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      try {
-        const content = ev.target.result;
-        await processRestoreContent(content);
-      } catch (err) {
-        setBackupErr("Could not read backup file: " + err.message);
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  }
-
-  async function processRestoreContent(content) {
-    try {
-      const parsed = typeof content === "string" ? JSON.parse(content) : content;
-      // Check if it is encrypted (has salt, iv, data)
-      if (parsed.salt && parsed.iv && parsed.data) {
-        setPendingEncryptedPayload(content);
-        setShowPasswordPrompt(true);
-        return;
-      }
-      // Plaintext legacy JSON
-      applyRestoredData(parsed);
-    } catch (e) {
-      setBackupErr("Invalid backup format: " + e.message);
-    }
-  }
-
-  async function submitDecryptionPassword() {
-    try {
-      if (!pendingEncryptedPayload) return;
-      const decrypted = await decryptData(pendingEncryptedPayload, restorePassword.trim() || "fireball_secure");
-      applyRestoredData(decrypted);
-      setShowPasswordPrompt(false);
-      setPendingEncryptedPayload(null);
-      setRestorePassword("");
-    } catch (e) {
-      setBackupErr("Decryption failed. Please verify password.");
-    }
-  }
-
-  function applyRestoredData(parsed) {
-    if (!parsed || (!parsed.customers && !parsed.trips)) {
-      setBackupErr("Invalid backup file structure.");
-      return;
-    }
-    const next = {
-      customers: parsed.customers || [],
-      suppliers: parsed.suppliers || [],
-      transactions: parsed.transactions || {},
-      trips: parsed.trips || [],
-      logs: parsed.logs || [],
-      settings: parsed.settings || db.settings
-    };
-    save(next);
-    logAction("Backup Restored", "Data restored from backup");
-    setBackupSuccessMsg("Data restored successfully!");
-    setBackupOk(true);
-    setBackupErr("");
-    setTimeout(() => { setBackupOk(false); setShowBackup(false); }, 1500);
-  }
-
-  // Expose global bridge for Android native document picker
-  useEffect(() => {
-    window.restoreFromAndroid = (data) => {
-      processRestoreContent(data);
-    };
-  }, [save]);
-
-  // Swipe support for Customers/Suppliers
-  const swipeStart = useRef(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  function onTouchStart(e) { if (modalOpen) return; swipeStart.current = e.touches[0].clientX; }
-  function onTouchEnd(e) {
-    if (modalOpen || swipeStart.current === null) return;
-    const diff = swipeStart.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 60) setHomeSubTab(diff > 0 ? 1 : 0);
-    swipeStart.current = null;
-  }
-
-  // If opening customer/supplier ledger
-  if (openEntityId && openEntityListKey) {
-    return (
-      <div style={{maxWidth:480,margin:"0 auto",height:"100vh",background:"#f7f8fa"}}>
-        <CustomerSupplierLedger
-          db={db} save={save}
-          entityId={openEntityId}
-          listKey={openEntityListKey}
-          accentColor={openEntityListKey === "customers" ? NAVY : TEAL}
-          accentLight={openEntityListKey === "customers" ? NAVY_LIGHT : TEAL_LIGHT}
-          onBack={() => { setOpenEntityId(null); setOpenEntityListKey(null); }}
-          logAction={logAction}
-        />
-      </div>
-    );
-  }
-
-  const accent = homeSubTab === 0 ? NAVY : TEAL;
 
   return (
-    <div style={{maxWidth:480,margin:"0 auto",height:"100vh",display:"flex",flexDirection:"column",background:"#f7f8fa",position:"relative"}}>
-      {/* ── VIEWS ── */}
-      <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-        {/* VIEW 1: MY ACCOUNTS (PRIMARY HOME SCREEN) */}
-        {navTab === "accounts" && (
-          <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-            style={{height:"100%",display:"flex",flexDirection:"column"}}>
-            {/* Header */}
-            <div style={{background:accent,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:0,flexShrink:0}}>
-              <div style={{display:"flex",alignItems:"center",marginBottom:14}}>
-                <div style={{flex:1,fontSize:20,fontWeight:900,letterSpacing:"0.5px"}}>MY ACCOUNTS</div>
-                <button onClick={() => { setShowDeleteByDate(true); setDeleteFrom(""); setDeleteTo(""); setDeleteConfirm(false); setDeleteResult(""); }}
-                  style={{background:"rgba(255,255,255,0.18)",border:"none",borderRadius:10,padding:"7px 14px",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",marginRight:8}}>
-                  Delete
-                </button>
-                <button onClick={() => { setShowBackup(true); setBackupErr(""); setBackupOk(false); }}
-                  style={{background:"rgba(255,255,255,0.18)",border:"none",borderRadius:10,padding:"7px 14px",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>
-                  ☁ Backup
-                </button>
-              </div>
-              <div style={{display:"flex",gap:4}}>
-                {["Customers", "Suppliers"].map((label, i) => (
-                  <div key={i} onClick={() => setHomeSubTab(i)}
-                    style={{flex:1,textAlign:"center",padding:"10px 0",fontSize:14,fontWeight:700,cursor:"pointer",
-                      color: homeSubTab === i ? "#fff" : "rgba(255,255,255,0.55)",
-                      borderBottom: homeSubTab === i ? "3px solid #fff" : "3px solid transparent",transition:"all 0.2s"}}>
-                    {label}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Sliding Entity Lists */}
-            <div style={{flex:1,overflow:"hidden",position:"relative"}}>
-              <div style={{display:"flex",width:"200%",height:"100%",transform:`translateX(${homeSubTab === 0 ? "0%" : "-50%"})`,transition:"transform 0.3s ease"}}>
-                <div style={{width:"50%",height:"100%",overflow:"hidden"}}>
-                  <EntityList db={db} save={save} tab="customers" accentColor={NAVY} accentLight={NAVY_LIGHT}
-                    onOpen={id => { setOpenEntityId(id); setOpenEntityListKey("customers"); }}
-                    onModalChange={setModalOpen} logAction={logAction}/>
-                </div>
-                <div style={{width:"50%",height:"100%",overflow:"hidden"}}>
-                  <EntityList db={db} save={save} tab="suppliers" accentColor={TEAL} accentLight={TEAL_LIGHT}
-                    onOpen={id => { setOpenEntityId(id); setOpenEntityListKey("suppliers"); }}
-                    onModalChange={setModalOpen} logAction={logAction}/>
-                </div>
-              </div>
-            </div>
+    <div style={{maxWidth:480,margin:"0 auto",height:"100vh",background:"#f7f8fa",position:"relative",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+      {/* Top Header App Bar (when not in detail views) */}
+      {!activeEntityId && (
+        <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900}}>🔥</div>
+            <div style={{fontWeight:900,fontSize:18,letterSpacing:"0.5px"}}>FIRE BALL</div>
           </div>
-        )}
-
-        {/* VIEW 2: TRIPS (FULL EXPENSE TRACKER) */}
-        {navTab === "trips" && <TripsView db={db} save={save} logAction={logAction}/>}
-
-        {/* VIEW 3: LEETCODE-STYLE ACTIVITY CALENDAR */}
-        {navTab === "activity" && <ActivityCalendarView db={db}/>}
-
-        {/* VIEW 4: ACTIVITY LOGS */}
-        {navTab === "logs" && <ActivityLogsView db={db}/>}
-
-        {/* VIEW 5: SECURITY */}
-        {navTab === "security" && (
-          <SecurityView db={db} save={save} logAction={logAction} onTriggerBackupModal={() => { setShowBackup(true); setBackupErr(""); setBackupOk(false); }}/>
-        )}
-      </div>
-
-      {/* ── BOTTOM NAVIGATION BAR ── */}
-      <div className="safe-bottom"
-        style={{background:"#fff",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"space-around",padding:"8px 0",flexShrink:0,zIndex:100,boxShadow:"0 -2px 10px rgba(0,0,0,0.03)"}}>
-        {[
-          { id: "accounts", label: "Accounts", icon: "📒" },
-          { id: "trips", label: "Trips", icon: "✈️" },
-          { id: "activity", label: "Activity", icon: "📈" },
-          { id: "logs", label: "Logs", icon: "📋" },
-          { id: "security", label: "Security", icon: "🔒" }
-        ].map(t => {
-          const isActive = navTab === t.id;
-          return (
-            <div key={t.id} onClick={() => setNavTab(t.id)}
-              style={{textAlign:"center",cursor:"pointer",flex:1,opacity: isActive ? 1 : 0.6}}>
-              <div style={{fontSize:20}}>{t.icon}</div>
-              <div style={{fontSize:10,fontWeight:700,marginTop:2,color: isActive ? NAVY : "#6b7280"}}>
-                {t.label}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── DELETE BY DATE MODAL ── */}
-      <Modal open={showDeleteByDate} onClose={() => { setShowDeleteByDate(false); setDeleteConfirm(false); setDeleteResult(""); }} title="Delete Entries by Date">
-        <p style={{fontSize:13,color:"#555",marginBottom:16}}>Remove all transactions within a date range across all customers and suppliers.</p>
-
-        <span style={lbl}>From Date</span>
-        <input type="date" value={deleteFrom} onChange={e => { setDeleteFrom(e.target.value); setDeleteConfirm(false); }} style={inp}/>
-
-        <span style={lbl}>To Date</span>
-        <input type="date" value={deleteTo} onChange={e => { setDeleteTo(e.target.value); setDeleteConfirm(false); }} style={inp}/>
-
-        {(deleteFrom || deleteTo) && !deleteConfirm && !deleteResult && (() => {
-          const count = countEntriesByDate();
-          return (
-            <div style={{background:"#fff8e1",borderRadius:10,padding:"12px 14px",marginTop:14,fontSize:13,color:"#555"}}>
-              <span style={{fontWeight:800,color:"#f57c00"}}>{count} entr{count === 1 ? "y" : "ies"}</span> found in this range.
-            </div>
-          );
-        })()}
-
-        {deleteConfirm && (
-          <div style={{background:"#ffebee",borderRadius:10,padding:"12px 14px",marginTop:14,fontSize:13,color:"#c62828",fontWeight:700}}>
-            ⚠ This will permanently delete transactions. Are you sure?
+          <div style={{fontSize:12,fontWeight:700,background:NAVY_LIGHT,color:NAVY,padding:"4px 10px",borderRadius:20}}>
+            My Accounts
           </div>
-        )}
+        </div>
+      )}
 
-        {deleteResult && (
-          <div style={{background:GREEN_LIGHT,color:GREEN,borderRadius:10,padding:"12px 14px",marginTop:14,fontSize:13,fontWeight:700}}>
-            ✓ {deleteResult}
-          </div>
-        )}
-
-        {!deleteResult && (
-          <div style={{display:"flex",gap:8,marginTop:16}}>
-            {!deleteConfirm ? (
-              <>
-                <button onClick={() => { setShowDeleteByDate(false); setDeleteConfirm(false); }}
-                  style={{flex:1,border:"none",borderRadius:10,padding:"13px",fontWeight:600,fontSize:14,cursor:"pointer",background:"#f5f5f5",color:"#757575"}}>
-                  Cancel
-                </button>
-                <button onClick={() => { if (deleteFrom || deleteTo) setDeleteConfirm(true); }}
-                  disabled={!deleteFrom && !deleteTo}
-                  style={{flex:1,border:"none",borderRadius:10,padding:"13px",fontWeight:700,fontSize:14,cursor:(deleteFrom||deleteTo)?"pointer":"not-allowed",background:(deleteFrom||deleteTo)?"#ffebee":"#f5f5f5",color:(deleteFrom||deleteTo)?"#c62828":"#bbb"}}>
-                  Delete
-                </button>
-              </>
-            ) : (
-              <>
-                <button onClick={() => setDeleteConfirm(false)}
-                  style={{flex:1,border:"none",borderRadius:10,padding:"13px",fontWeight:600,fontSize:14,cursor:"pointer",background:"#f5f5f5",color:"#757575"}}>
-                  Go Back
-                </button>
-                <button onClick={deleteEntriesByDate}
-                  style={{flex:1,border:"none",borderRadius:10,padding:"13px",fontWeight:800,fontSize:14,cursor:"pointer",background:"#c62828",color:"#fff"}}>
-                  Confirm Delete
-                </button>
-              </>
+      {/* Main Content Router */}
+      <div style={{flex:1,position:"relative",overflow:"hidden"}}>
+        {activeEntityId ? (
+          <CustomerSupplierLedger
+            db={db}
+            save={save}
+            entityId={activeEntityId}
+            listKey={tab === "suppliers" ? "suppliers" : "customers"}
+            accentColor={tab === "suppliers" ? "#1a3a6b" : NAVY}
+            accentLight={tab === "suppliers" ? "#e8eaf6" : NAVY_LIGHT}
+            onBack={() => setActiveEntityId(null)}
+            logAction={logAction}/>
+        ) : (
+          <>
+            {tab === "customers" && (
+              <EntityList db={db} save={save} tab="customers" accentColor={NAVY} accentLight={NAVY_LIGHT} onOpen={setActiveEntityId} logAction={logAction}/>
             )}
-          </div>
+            {tab === "suppliers" && (
+              <EntityList db={db} save={save} tab="suppliers" accentColor="#1a3a6b" accentLight="#e8eaf6" onOpen={setActiveEntityId} logAction={logAction}/>
+            )}
+            {tab === "trips" && (
+              <TripsView db={db} save={save} logAction={logAction}/>
+            )}
+            {tab === "heatmap" && (
+              <ActivityHeatmapView db={db}/>
+            )}
+            {tab === "settings" && (
+              <SettingsView db={db} save={save} logAction={logAction}/>
+            )}
+          </>
         )}
-      </Modal>
+      </div>
 
-      {/* ── ENCRYPTED BACKUP & RESTORE MODAL ── */}
-      <Modal open={showBackup} onClose={() => { setShowBackup(false); setBackupErr(""); }} title="Encrypted Backup & Restore">
-        <div style={{fontSize:12,fontWeight:700,color:"#757575",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>
-          Export Encrypted Backup
+      {/* Sticky Bottom Navigation Bar */}
+      {!activeEntityId && (
+        <div style={{
+          position:"fixed",bottom:0,left:0,right:0,maxWidth:480,margin:"0 auto",
+          background:"#ffffff",borderTop:"1px solid #e5e7eb",
+          display:"flex",alignItems:"center",zIndex:100,
+          paddingBottom:"max(6px, env(safe-area-inset-bottom, 6px))"
+        }}>
+          {[
+            { id: "customers", label: "Customers", icon: "👥" },
+            { id: "suppliers", label: "Suppliers", icon: "🏭" },
+            { id: "trips", label: "Trips", icon: "✈️" },
+            { id: "heatmap", label: "Heatmap", icon: "📊" },
+            { id: "settings", label: "Settings", icon: "⚙️" }
+          ].map(item => {
+            const active = tab === item.id;
+            return (
+              <div key={item.id} className={`nav-item ${active ? "active" : ""}`} onClick={() => setTab(item.id)}>
+                <div className="nav-item-icon">{item.icon}</div>
+                <div>{item.label}</div>
+              </div>
+            );
+          })}
         </div>
-        <span style={{...lbl, marginTop:4}}>Encryption Password (Optional)</span>
-        <input type="password" value={backupPassword} onChange={e => setBackupPassword(e.target.value)} placeholder="Enter password to protect backup" style={inp}/>
-
-        <button onClick={exportEncryptedBackup}
-          style={{width:"100%",border:"none",borderRadius:10,padding:"14px",fontWeight:800,fontSize:15,cursor:"pointer",background:NAVY,color:"#fff",marginTop:10,marginBottom:6}}>
-          🔒 Download Encrypted Backup
-        </button>
-        <p style={{fontSize:11,color:"#888",marginBottom:20}}>Uses AES-GCM 256-bit encryption with PBKDF2 key derivation.</p>
-
-        <div style={{height:1,background:"#e5e7eb",marginBottom:20}}/>
-
-        <div style={{fontSize:12,fontWeight:700,color:"#757575",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>
-          Restore Backup
-        </div>
-        <button onClick={() => {
-          if (window.AndroidBridge && window.AndroidBridge.openFilePicker) {
-            window.AndroidBridge.openFilePicker();
-          } else {
-            fileInputRef.current?.click();
-          }
-        }} style={{width:"100%",border:"2px dashed #ccc",borderRadius:10,padding:"14px",fontWeight:700,fontSize:15,cursor:"pointer",background:"#f9f9f9",color:"#444",marginBottom:8}}>
-          📂 Choose Backup File
-        </button>
-        <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileImport} style={{display:"none"}}/>
-
-        {backupErr && <div style={{background:"#ffebee",color:"#c62828",borderRadius:8,padding:"10px 14px",fontSize:13,marginTop:8}}>⚠ {backupErr}</div>}
-        {backupOk && <div style={{background:GREEN_LIGHT,color:GREEN,borderRadius:8,padding:"10px 14px",fontSize:13,fontWeight:700,marginTop:8}}>✓ {backupSuccessMsg}</div>}
-
-        <button onClick={() => { setShowBackup(false); setBackupErr(""); }}
-          style={{width:"100%",border:"none",borderRadius:10,padding:"13px",fontWeight:700,fontSize:14,cursor:"pointer",background:"#f5f5f5",color:"#757575",marginTop:12}}>
-          Close
-        </button>
-      </Modal>
-
-      {/* ── PASSWORD PROMPT FOR DECRYPTION ── */}
-      <Modal open={showPasswordPrompt} onClose={() => { setShowPasswordPrompt(false); setPendingEncryptedPayload(null); }} title="Backup is Encrypted" center>
-        <p style={{fontSize:13,color:"#555",marginBottom:12}}>
-          This backup file is encrypted with a password. Please enter the password to decrypt and restore your data.
-        </p>
-        <input type="password" value={restorePassword} onChange={e => setRestorePassword(e.target.value)}
-          placeholder="Enter backup password" style={inp} autoFocus/>
-        {backupErr && <div style={{fontSize:11,color:"#c62828",marginTop:6,fontWeight:600}}>{backupErr}</div>}
-        <div style={{display:"flex",gap:8,marginTop:16}}>
-          <button onClick={() => { setShowPasswordPrompt(false); setPendingEncryptedPayload(null); }}
-            style={{flex:1,border:"none",borderRadius:10,padding:"12px",fontWeight:600,fontSize:14,background:"#f5f5f5",color:"#757575",cursor:"pointer"}}>
-            Cancel
-          </button>
-          <button onClick={submitDecryptionPassword}
-            style={{flex:1,border:"none",borderRadius:10,padding:"12px",fontWeight:800,fontSize:14,background:NAVY,color:"#fff",cursor:"pointer"}}>
-            Decrypt & Restore
-          </button>
-        </div>
-      </Modal>
+      )}
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+// ── RENDER APPLICATION ────────────────────────────────────────
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 </body>
 </html>
