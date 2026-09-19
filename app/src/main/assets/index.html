@@ -1,9 +1,9 @@
-[source: 1]<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
-<title>Fire Ball - My Accounts</title>
+<title>Red Orbit - My Accounts</title>
 
 <!-- PWA & Mobile Meta Tags -->
 <meta name="mobile-web-app-capable" content="yes"/>
@@ -16,6 +16,7 @@
 <!-- External Dependencies -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/bson/dist/bson.browser.umd.js"></script>
 <script>
   // Filter out Babel warning noise in WebView console
   const _warn = console.warn;
@@ -210,31 +211,23 @@ const INIT = {
     biometricsEnabled: false
   }
 };
-const DB_KEY = "myaccounts_pro_v1";
-
 function loadFromAllSources() {
-  // 1. Android native file-based storage
+  // 1. Android Native Storage (Encrypted BSON via Kotlin StorageManager)
   try {
     if (window.AndroidBridge && window.AndroidBridge.loadAppData) {
       const androidData = window.AndroidBridge.loadAppData();
-      if (androidData) {
+      if (androidData && androidData !== "{}") {
         const parsed = JSON.parse(androidData);
         if (parsed && (parsed.customers || parsed.trips || parsed.transactions)) {
           return { ...INIT, ...parsed };
         }
       }
     }
-  } catch (e) {}
+  } catch (e) { console.error("Native load failed", e); }
 
-  // 2. LocalStorage
+  // 2. Web Storage Fallback (only used if testing in a desktop browser)
   try {
     const d = JSON.parse(localStorage.getItem(DB_KEY) || "null");
-    if (d && (d.customers || d.trips || d.transactions)) return { ...INIT, ...d };
-  } catch (e) {}
-
-  // 3. SessionStorage
-  try {
-    const d = JSON.parse(sessionStorage.getItem(DB_KEY) || "null");
     if (d && (d.customers || d.trips || d.transactions)) return { ...INIT, ...d };
   } catch (e) {}
 
@@ -243,25 +236,17 @@ function loadFromAllSources() {
 
 function persistAllSources(data) {
   const jsonStr = JSON.stringify(data);
-  // 1. Android atomic JSON file storage
+  
+  // 1. Android Native Storage (Encrypted BSON via Kotlin StorageManager)
   try {
     if (window.AndroidBridge && window.AndroidBridge.saveAppData) {
       window.AndroidBridge.saveAppData(jsonStr);
     }
-  } catch (e) {}
+  } catch (e) { console.error("Native save failed", e); }
 
-  // 2. Web storage fallback
-  try { localStorage.setItem(DB_KEY, jsonStr); } catch (e) {}
-  try { sessionStorage.setItem(DB_KEY, jsonStr); } catch (e) {}
-
-  // 3. IndexedDB fallback
-  try {
-    const req = indexedDB.open("myaccounts", 1);
-    req.onupgradeneeded = e => e.target.result.createObjectStore("data");
-    req.onsuccess = e => {
-      const tx = e.target.result.transaction("data", "readwrite");
-      tx.objectStore("data").put(jsonStr, DB_KEY);
-    };
+  // 2. Web Storage Fallback (only used if testing in a desktop browser)
+  try { 
+    localStorage.setItem(DB_KEY, jsonStr); 
   } catch (e) {}
 }
 
@@ -1209,7 +1194,7 @@ function TripsView({ db, save, logAction }) {
         </div>
 
         {/* Content */}
-        <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
+        <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:140}}>
           <div className="card" style={{background:"linear-gradient(135deg, #065f46, #0d7c59)",color:"#fff",border:"none",padding:18}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
               <div>
@@ -2077,62 +2062,47 @@ function SettingsView({ db, save, logAction }) {
 // ══════════════════════════════════════════════════════════════
 
 function AppLockOverlay({ settings, onUnlock }) {
-  const [pin, setPin] = useState("");
-  const [err, setErr] = useState("");
-
-  const verify = (entered) => {
-    if (entered === settings.pin) {
-      onUnlock();
-    } else {
-      setErr("Incorrect PIN!");
-      setPin("");
-    }
-  };
-
-  const handleBiometric = () => {
-    if (window.AndroidBridge && window.AndroidBridge.authenticateBiometric) {
-      try {
-        window.AndroidBridge.authenticateBiometric(success => {
-          if (success) onUnlock();
-        });
-      } catch(e) {}
-    }
-  };
-
   useEffect(() => {
-    if (settings.biometricsEnabled) {
-      handleBiometric();
+    // 1. Define global callback for Kotlin
+    window.onBiometricResult = (success, message) => {
+      if (success) {
+        onUnlock();
+      } else {
+        console.warn("Authentication failed or canceled:", message);
+      }
+    };
+
+    // 2. Trigger Biometric Prompt
+    if (window.AndroidBridge && window.AndroidBridge.authenticateBiometric) {
+      window.AndroidBridge.authenticateBiometric();
     }
+
+    return () => {
+      delete window.onBiometricResult;
+    };
   }, []);
 
+  const triggerAuth = () => {
+    if (window.AndroidBridge && window.AndroidBridge.authenticateBiometric) {
+      window.AndroidBridge.authenticateBiometric();
+    } else {
+      // Manual fallback for browser testing only
+      onUnlock();
+    }
+  };
+
   return (
-    <div style={{position:"fixed",inset:0,background:NAVY,color:"#fff",zIndex:99999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
-      <div style={{fontSize:56,marginBottom:12}}>🔒</div>
-      <div style={{fontSize:22,fontWeight:900,marginBottom:4}}>Fire Ball</div>
-      <div style={{fontSize:13,opacity:0.8,marginBottom:28}}>Enter 4-digit PIN to unlock</div>
+    <div style={{ position: "fixed", inset: 0, background: NAVY, color: "#fff", zIndex: 99999, display: "flex", flexDirection: "column", alignItems: "center", justify: "center", padding: 24 }}>
+      <div style={{ fontSize: 56, marginBottom: 12 }}>🔒</div>
+      <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Fire Ball</div>
+      <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 24 }}>App is Locked</div>
 
-      <input type="password" maxLength={4} value={pin}
-        onChange={e => {
-          const v = e.target.value;
-          setPin(v);
-          setErr("");
-          if (v.length === 4) verify(v);
-        }}
-        placeholder="••••"
-        style={{background:"rgba(255,255,255,0.2)",border:"2px solid rgba(255,255,255,0.4)",borderRadius:14,padding:"14px",fontSize:28,color:"#fff",textAlign:"center",width:180,letterSpacing:10,outline:"none",marginBottom:12}}
-        autoFocus/>
-
-      {err && <div style={{color:"#ffcdd2",fontWeight:700,fontSize:13,marginBottom:16}}>{err}</div>}
-
-      {settings.biometricsEnabled && (
-        <button onClick={handleBiometric} className="btn-pill" style={{background:"rgba(255,255,255,0.2)",color:"#fff",marginTop:20}}>
-          👆 Use Fingerprint / Biometrics
-        </button>
-      )}
+      <button onClick={triggerAuth} className="btn-pill" style={{ background: "rgba(255,255,255,0.2)", color: "#fff", padding: "12px 24px", fontSize: 15 }}>
+        👆 Unlock with Biometrics / PIN
+      </button>
     </div>
   );
 }
-
 // ══════════════════════════════════════════════════════════════
 // 6. MAIN APPLICATION ROOT CONTAINER
 // ══════════════════════════════════════════════════════════════
@@ -2141,7 +2111,20 @@ function App() {
   const [db, setDb] = useState(loadFromAllSources);
   const [tab, setTab] = useState("customers"); // "customers" | "suppliers" | "trips" | "heatmap" | "settings"
   const [activeEntityId, setActiveEntityId] = useState(null);
-  const [isLocked, setIsLocked] = useState(() => db.settings && db.settings.appLockEnabled);
+
+  // 1. Initial lock state check (checks both appLockEnabled and biometricsEnabled)
+  const [isLocked, setIsLocked] = useState(() => {
+    const s = db && db.settings;
+    return Boolean(s && (s.appLockEnabled || s.biometricsEnabled));
+  });
+
+  // 2. Sync lock state if database updates from native Android storage on launch
+  useEffect(() => {
+    const s = db && db.settings;
+    if (s && (s.appLockEnabled || s.biometricsEnabled)) {
+      setIsLocked(true);
+    }
+  }, [db]);
 
   const save = useCallback((nextDb) => {
     setDb(nextDb);
@@ -2157,10 +2140,12 @@ function App() {
     });
   }, []);
 
+  // Return the lock overlay if the app should be locked
   if (isLocked) {
-    return <AppLockOverlay settings={db.settings} onUnlock={() => setIsLocked(false)}/>;
+    return <AppLockOverlay settings={db.settings} onUnlock={() => setIsLocked(false)} />;
   }
 
+  // Render main application interface
   return (
     <div style={{maxWidth:480,margin:"0 auto",height:"100vh",background:"#f7f8fa",position:"relative",overflow:"hidden",display:"flex",flexDirection:"column"}}>
       {/* Top Header App Bar (when not in detail views) */}

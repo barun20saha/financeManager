@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.biometric.BiometricManager // <--- ADD THIS IMPORT
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import com.example.myaccounts.storage.StorageManager
@@ -171,7 +172,7 @@ class MainActivity : AppCompatActivity() {
         settings.allowContentAccess = true
 
         // --------------------------------------------------------
-        // JavaScript ↔ Android bridge
+        // JavaScript ↔ Android bridge  
         // --------------------------------------------------------
 
         webView.addJavascriptInterface(
@@ -223,73 +224,46 @@ class MainActivity : AppCompatActivity() {
     // ============================================================
 
     private fun setupBiometric() {
+    executor = ContextCompat.getMainExecutor(this)
 
-        executor = ContextCompat.getMainExecutor(this)
-
-        biometricPrompt = BiometricPrompt(
-            this,
-            executor,
-
-            object : BiometricPrompt.AuthenticationCallback() {
-
-                override fun onAuthenticationError(
-                    errorCode: Int,
-                    errString: CharSequence
-                ) {
-                    super.onAuthenticationError(
-                        errorCode,
-                        errString
-                    )
-
-                    webView.post {
-
-                        val message = org.json.JSONObject
-                            .quote(errString.toString())
-
-                        webView.evaluateJavascript(
-                            "window.onBiometricResult(false, $message)",
-                            null
-                        )
-                    }
-                }
-
-                override fun onAuthenticationSucceeded(
-                    result: BiometricPrompt.AuthenticationResult
-                ) {
-                    super.onAuthenticationSucceeded(result)
-
-                    webView.post {
-
-                        webView.evaluateJavascript(
-                            "window.onBiometricResult(true, 'Success')",
-                            null
-                        )
-                    }
-                }
-
-                override fun onAuthenticationFailed() {
-                    super.onAuthenticationFailed()
-
-                    webView.post {
-
-                        webView.evaluateJavascript(
-                            "window.onBiometricResult(false, 'Failed')",
-                            null
-                        )
-                    }
+    biometricPrompt = BiometricPrompt(
+        this,
+        executor,
+        object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                super.onAuthenticationError(errorCode, errString)
+                webView.post {
+                    val message = org.json.JSONObject.quote(errString.toString())
+                    webView.evaluateJavascript("window.onBiometricResult(false, $message)", null)
                 }
             }
+
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                super.onAuthenticationSucceeded(result)
+                webView.post {
+                    webView.evaluateJavascript("window.onBiometricResult(true, 'Success')", null)
+                }
+            }
+
+            override fun onAuthenticationFailed() {
+                super.onAuthenticationFailed()
+                webView.post {
+                    webView.evaluateJavascript("window.onBiometricResult(false, 'Failed')", null)
+                }
+            }
+        }
+    )
+
+    // Set authenticators to include Device PIN/Pattern alongside Biometrics
+    promptInfo = BiometricPrompt.PromptInfo.Builder()
+        .setTitle("Unlock My Accounts")
+        .setSubtitle("Use fingerprint, face, or device PIN")
+        .setAllowedAuthenticators(
+            BiometricManager.Authenticators.BIOMETRIC_STRONG or 
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL
         )
-
-        promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Biometric login for My Accounts")
-            .setSubtitle(
-                "Log in using your biometric credential"
-            )
-            .setNegativeButtonText("Use PIN")
-            .build()
+        .build()
     }
-
     // ------------------------------------------------------------
     // Start biometric authentication
     // ------------------------------------------------------------
