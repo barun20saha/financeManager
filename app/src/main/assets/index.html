@@ -9,9 +9,9 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="Fire Ball"/>
+<meta name="apple-mobile-web-app-title" content="Red Orbit"/>
 <meta name="theme-color" content="#065f46"/>
-<meta name="description" content="Fire Ball - Customer, Supplier Ledger & Trip Expense Tracker"/>
+<meta name="description" content="Red Orbit - Customer, Supplier Ledger & Trip Expense Tracker"/>
 
 <!-- External Dependencies -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -166,9 +166,30 @@
     font-size: 20px;
     margin-bottom: 2px;
   }
+
+  /* Instant Native Splash Screen */
+  #native-splash {
+    position: fixed; inset: 0; background: var(--primary); z-index: 9999999;
+    display: flex; flex-direction: column; alignItems: center; justify-content: center;
+    color: #fff; transition: opacity 0.4s ease;
+  }
+  .loader {
+    width: 48px; height: 48px; border: 5px solid rgba(255,255,255,0.2);
+    border-bottom-color: #fff; border-radius: 50%; display: inline-block;
+    box-sizing: border-box; animation: rotation 1s linear infinite; margin-top: 24px;
+  }
+  @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
+
+<!-- This loads instantly before React compiles -->
+<div id="native-splash">
+  <div style="font-size: 56px; font-weight: 900; margin-bottom: 8px; text-align: center;">🔥</div>
+  <div style="font-size: 24px; font-weight: 900; letter-spacing: 1px; text-align: center;">Red Orbit</div>
+  <div class="loader"></div>
+</div>
+
 <div id="root"></div>
 
 <script type="text/babel">
@@ -202,17 +223,15 @@ const initials = n => (n || "").trim().split(" ").filter(Boolean).map(w => w[0])
 const INIT = {
   customers: [],
   suppliers: [],
-  transactions: {}, // entityId -> Transaction[]
-  trips: [],        // Trip[]
-  logs: [],         // ActivityLog[]
+  transactions: {}, 
+  trips: [],        
+  logs: [],         
   settings: {
     appLockEnabled: false,
-    pin: null,
     biometricsEnabled: false
   }
 };
 function loadFromAllSources() {
-  // 1. Android Native Storage (Encrypted BSON via Kotlin StorageManager)
   try {
     if (window.AndroidBridge && window.AndroidBridge.loadAppData) {
       const androidData = window.AndroidBridge.loadAppData();
@@ -224,71 +243,22 @@ function loadFromAllSources() {
       }
     }
   } catch (e) { console.error("Native load failed", e); }
-
-  // 2. Web Storage Fallback (only used if testing in a desktop browser)
   try {
-    const d = JSON.parse(localStorage.getItem(DB_KEY) || "null");
+    const d = JSON.parse(localStorage.getItem("redorbit_db") || "null");
     if (d && (d.customers || d.trips || d.transactions)) return { ...INIT, ...d };
   } catch (e) {}
-
   return INIT;
 }
 
 function persistAllSources(data) {
   const jsonStr = JSON.stringify(data);
-  
-  // 1. Android Native Storage (Encrypted BSON via Kotlin StorageManager)
   try {
     if (window.AndroidBridge && window.AndroidBridge.saveAppData) {
       window.AndroidBridge.saveAppData(jsonStr);
     }
   } catch (e) { console.error("Native save failed", e); }
-
-  // 2. Web Storage Fallback (only used if testing in a desktop browser)
-  try { 
-    localStorage.setItem(DB_KEY, jsonStr); 
-  } catch (e) {}
+  try { localStorage.setItem("redorbit_db", jsonStr); } catch (e) {}
 }
-
-// ── CRYPTO UTILITIES (PBKDF2 + AES-GCM) ───────────────────────
-const encryptData = async (data, password) => {
-  const encoder = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveKey"]);
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const key = await crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
-    keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt"]
-  );
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoder.encode(JSON.stringify(data)));
-  return JSON.stringify({
-    salt: Array.from(salt),
-    iv: Array.from(iv),
-    data: Array.from(new Uint8Array(encrypted))
-  });
-};
-
-const decryptData = async (encryptedStr, password) => {
-  const { salt, iv, data } = JSON.parse(encryptedStr);
-  const encoder = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveKey"]);
-  const key = await crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: new Uint8Array(salt), iterations: 100000, hash: "SHA-256" },
-    keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["decrypt"]
-  );
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: new Uint8Array(iv) },
-    key,
-    new Uint8Array(data)
-  );
-  return JSON.parse(new TextDecoder().decode(decrypted));
-};
 
 // ── SETTLEMENT & STATS HELPERS ───────────────────────────────
 const getSettled = tx => (tx.settlements || []).reduce((s, x) => s + x.amount, 0);
@@ -401,7 +371,6 @@ function EntityList({ db, save, tab, accentColor, accentLight, onOpen, onModalCh
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",background:"#f7f8fa"}}>
-      {/* Summary Cards */}
       <div style={{background:accentColor,color:"#fff",padding:"16px 16px 20px"}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           {[["You will Get", stats.totalGet, "↑"], ["You will Give", stats.totalGive, "↓"]].map(([label, val, icon]) => (
@@ -415,7 +384,6 @@ function EntityList({ db, save, tab, accentColor, accentLight, onOpen, onModalCh
         </div>
       </div>
 
-      {/* Search Bar */}
       <div style={{background:"#fff",padding:"10px 14px",borderBottom:"1px solid #eef0f3"}}>
         <div style={{display:"flex",alignItems:"center",background:"#f1f3f6",borderRadius:12,padding:"0 14px",gap:8}}>
           <span style={{fontSize:15,color:"#aaa"}}>🔍</span>
@@ -425,7 +393,6 @@ function EntityList({ db, save, tab, accentColor, accentLight, onOpen, onModalCh
         </div>
       </div>
 
-      {/* List */}
       <div style={{flex:1,overflowY:"auto",paddingBottom:90}}>
         {filtered.length === 0 ? (
           <div style={{textAlign:"center",padding:"64px 24px",color:"#bbb"}}>
@@ -467,7 +434,6 @@ function EntityList({ db, save, tab, accentColor, accentLight, onOpen, onModalCh
         })}
       </div>
 
-      {/* Add Button */}
       <div style={{padding:"12px 16px 20px",background:"#fff",borderTop:"1px solid #eef0f3",position:"fixed",bottom:60,left:0,right:0,maxWidth:480,margin:"0 auto",zIndex:50}}>
         <button onClick={openAdd}
           style={{width:"100%",background:accentColor,color:"#fff",border:"none",borderRadius:14,padding:"14px",fontWeight:800,fontSize:15,cursor:"pointer",boxShadow:"0 4px 12px rgba(6,95,70,0.3)"}}>
@@ -510,6 +476,9 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
   const [editingNote, setEditingNote] = useState(false);
   const [noteVal, setNoteVal] = useState("");
   const [filterOn, setFilterOn] = useState(false);
+  
+  const [showEditEntity, setShowEditEntity] = useState(false);
+  const [editEntityName, setEditEntityName] = useState(entity ? entity.name : "");
 
   if (!entity) return null;
   const detailTx = detailId ? allTxs.find(t => t.id === detailId) || null : null;
@@ -595,12 +564,23 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
     setEditIdx(null); setEditVal(""); setEditErr("");
   }
   function deleteTx() { if (!detailTx) return; updateTxs(txs => txs.filter(t => t.id !== detailTx.id)); closeDetail(); }
+  
   function deleteEntity() {
     const next = { ...db, [listKey]: entities.filter(e => e.id !== entityId), transactions: { ...db.transactions } };
     delete next.transactions[entityId];
     save(next);
     logAction(isSupplier ? "Supplier Deleted" : "Customer Deleted", `Deleted ${entity.name}`);
     onBack();
+  }
+  
+  function renameEntity() {
+    if (!editEntityName.trim()) return;
+    const updatedEntities = entities.map(e => 
+      e.id === entityId ? { ...e, name: editEntityName.trim() } : e
+    );
+    save({ ...db, [listKey]: updatedEntities });
+    logAction("Renamed", `Renamed to ${editEntityName.trim()}`);
+    setShowEditEntity(false);
   }
 
   const allPayments = [];
@@ -644,14 +624,25 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#f7f8fa"}}>
-      {/* Header */}
+      
+      {/* ── HEADER WITH FIXED EDIT BUTTON ALIGNMENT ── */}
       <div style={{background:accentColor,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:14,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
         <div onClick={onBack} style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>←</div>
-        <div style={{flex:1,fontWeight:800,fontSize:17,letterSpacing:"0.2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{entity.name}</div>
+        
+        {/* Name and Edit Button Container */}
+        <div style={{flex:1, display:"flex", alignItems:"center", gap: 8, overflow:"hidden"}}>
+          <div style={{fontWeight:800,fontSize:17,letterSpacing:"0.2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+            {entity.name}
+          </div>
+          <div onClick={() => { setEditEntityName(entity.name); setShowEditEntity(true); }}
+               style={{cursor:"pointer", background:"rgba(255,255,255,0.2)", borderRadius:"50%", width: 28, height: 28, display:"flex", alignItems:"center", justifyContent:"center", fontSize: 13, flexShrink:0}}>
+            ✎
+          </div>
+        </div>
+
         <div onClick={()=>setShowDelEntity(true)} style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>✕</div>
       </div>
 
-      {/* Balance Card */}
       <div style={{background:accentColor,paddingBottom:20,flexShrink:0}}>
         <div style={{margin:"0 16px",background:"rgba(255,255,255,0.18)",borderRadius:14,padding:"14px 18px",textAlign:"center"}}>
           <div style={{fontSize:10,color:"rgba(255,255,255,0.8)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>Current Balance</div>
@@ -659,7 +650,6 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
         </div>
       </div>
 
-      {/* Tabs */}
       <div style={{padding:"10px 16px 0",background:"#f7f8fa",flexShrink:0}}>
         <div style={{display:"flex",background:"#e8eaed",borderRadius:12,padding:3}}>
           {[["all", "All Entries"], ["payments", tabLabel]].map(([val, label]) => {
@@ -677,7 +667,6 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
         </div>
       </div>
 
-      {/* List */}
       <div style={{flex:1,overflowY:"auto",paddingTop:8,paddingBottom:90}}>
         {filterOn ? (
           relevantPayments.length === 0 ? (
@@ -749,8 +738,7 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
           ))
         )}
       </div>
-
-      {/* Action Buttons */}
+ 
       <div style={{display:"flex",padding:"12px 16px 20px",gap:10,background:"#fff",borderTop:"1px solid #eef0f3",position:"fixed",bottom:0,left:0,right:0,maxWidth:480,margin:"0 auto",zIndex:50}}>
         <button onClick={() => { setTxType("debit"); setTxAmt(""); setTxNote(""); setTxDate(todayStr()); setShowAddTx(true); }}
           style={{flex:1,border:"none",borderRadius:14,padding:"14px 8px",fontWeight:700,fontSize:14,cursor:"pointer",background:accentLight,color:accentColor}}>
@@ -762,7 +750,6 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
         </button>
       </div>
 
-      {/* ADD TX MODAL */}
       <Modal open={showAddTx} onClose={() => setShowAddTx(false)} title="Add Transaction">
         <div style={{display:"flex",border:"1.5px solid #e0e0e0",borderRadius:10,overflow:"hidden",background:"#f5f5f5"}}>
           {[["debit", "− You Gave"], ["credit", "+ You Got"]].map(([t, label]) => (
@@ -789,7 +776,6 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
         </button>
       </Modal>
 
-      {/* DETAIL MODAL */}
       <Modal open={!!detailTx} onClose={closeDetail} title="Transaction Detail">
         {detailTx && (() => {
           const tx = detailTx, pending = getPending(tx), settled = getSettled(tx), isDebit = tx.type === "debit", ac = isDebit ? accentColor : GREEN;
@@ -909,6 +895,14 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
         })()}
       </Modal>
 
+      <Modal open={showEditEntity} onClose={() => setShowEditEntity(false)} title="Edit Name" center>
+        <span style={lbl}>Name</span>
+        <input value={editEntityName} onChange={e => setEditEntityName(e.target.value)} style={inp} autoFocus />
+        <button onClick={renameEntity} className="btn-pill" style={{ width: "100%", background: accentColor, color: "#fff", marginTop: 18 }}>
+          Save Name
+        </button>
+      </Modal>
+
       <Modal open={showDelEntity} onClose={() => setShowDelEntity(false)} title={`Delete ${isSupplier ? "Supplier" : "Customer"}?`}>
         <p style={{fontSize:14,color:"#555",marginBottom:20}}>This will permanently delete <b>{entity.name}</b> and all their recorded transactions.</p>
         <div style={{display:"flex",gap:8}}>
@@ -929,7 +923,6 @@ function TripsView({ db, save, logAction }) {
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [tripName, setTripName] = useState("");
 
-  // Modals inside active trip
   const [showMenu, setShowMenu] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -939,11 +932,9 @@ function TripsView({ db, save, logAction }) {
   const [editTripName, setEditTripName] = useState("");
   const [selectedExpense, setSelectedExpense] = useState(null);
 
-  // Members modal state
   const [newMemberName, setNewMemberName] = useState("");
   const [memberErr, setMemberErr] = useState("");
 
-  // Add expense form state
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [expDesc, setExpDesc] = useState("");
   const [expAmt, setExpAmt] = useState("");
@@ -952,6 +943,9 @@ function TripsView({ db, save, logAction }) {
   const [expSplitType, setExpSplitType] = useState("equal");
   const [expManualShares, setExpManualShares] = useState({});
   const [expDate, setExpDate] = useState(todayStr());
+
+  const [editingMember, setEditingMember] = useState(null);
+  const [editMemberName, setEditMemberName] = useState("");
 
   const trips = db.trips || [];
   const activeTrip = trips.find(t => t.id === activeTripId);
@@ -994,7 +988,6 @@ function TripsView({ db, save, logAction }) {
   const removeMember = (memberName) => {
     const hasPaid = activeTrip.expenses.some(e => e.paidBy === memberName);
     const hasShare = activeTrip.expenses.some(e => e.participants.includes(memberName) && (e.shares[memberName] || 0) > 0);
-
     if (hasPaid || hasShare) {
       setMemberErr(`Cannot remove "${memberName}": tied to existing expenses.`);
       return;
@@ -1004,14 +997,38 @@ function TripsView({ db, save, logAction }) {
     setMemberErr("");
   };
 
-  // Compute equal shares with penny rounding guarantee
+  const renameMember = (oldName, newName) => {
+    const trimmed = newName.trim();
+    if (!trimmed || oldName === trimmed) return;
+    
+    if (activeTrip.members.some(m => m.toLowerCase() === trimmed.toLowerCase())) {
+      setMemberErr(`Member "${trimmed}" already exists!`);
+      return;
+    }
+    updateActiveTrip(t => {
+      const updatedMembers = t.members.map(m => m === oldName ? trimmed : m);
+      const updatedExpenses = t.expenses.map(e => {
+        const newPaidBy = e.paidBy === oldName ? trimmed : e.paidBy;
+        const newParticipants = e.participants.map(p => p === oldName ? trimmed : p);
+        const newShares = {};
+        Object.entries(e.shares || {}).forEach(([m, s]) => {
+          newShares[m === oldName ? trimmed : m] = s;
+        });
+        return { ...e, paidBy: newPaidBy, participants: newParticipants, shares: newShares };
+      });
+      return { ...t, members: updatedMembers, expenses: updatedExpenses };
+    });
+    logAction("Member Renamed", `Renamed member ${oldName} to ${trimmed} in ${activeTrip.name}`);
+    setEditingMember(null);
+    setEditMemberName("");
+  };
+
   const computeEqualShares = (totalAmount, participants) => {
     if (!participants || participants.length === 0 || totalAmount <= 0) return {};
     const count = participants.length;
     const totalPaise = Math.round(totalAmount * 100);
     const basePaise = Math.floor(totalPaise / count);
     const remainder = totalPaise % count;
-
     const shares = {};
     participants.forEach((p, idx) => {
       const pPaise = basePaise + (idx < remainder ? 1 : 0);
@@ -1021,28 +1038,16 @@ function TripsView({ db, save, logAction }) {
   };
 
   const openNewExpense = () => {
-    setEditingExpenseId(null);
-    setExpDesc("");
-    setExpAmt("");
-    setExpPayer(activeTrip.members[0] || "");
-    setExpParticipants([...activeTrip.members]);
-    setExpSplitType("equal");
-    setExpManualShares({});
-    setExpDate(todayStr());
-    setShowAddExpense(true);
+    setEditingExpenseId(null); setExpDesc(""); setExpAmt(""); setExpPayer(activeTrip.members[0] || "");
+    setExpParticipants([...activeTrip.members]); setExpSplitType("equal"); setExpManualShares({});
+    setExpDate(todayStr()); setShowAddExpense(true);
   };
 
   const openEditExpense = (expense) => {
-    setEditingExpenseId(expense.id);
-    setExpDesc(expense.description);
-    setExpAmt(String(expense.amount));
-    setExpPayer(expense.paidBy);
-    setExpParticipants([...expense.participants]);
-    setExpSplitType(expense.splitType || "equal");
-    setExpManualShares({ ...(expense.shares || {}) });
-    setExpDate(expense.date || todayStr());
-    setSelectedExpense(null);
-    setShowAddExpense(true);
+    setEditingExpenseId(expense.id); setExpDesc(expense.description); setExpAmt(String(expense.amount));
+    setExpPayer(expense.paidBy); setExpParticipants([...expense.participants]); setExpSplitType(expense.splitType || "equal");
+    setExpManualShares({ ...(expense.shares || {}) }); setExpDate(expense.date || todayStr());
+    setSelectedExpense(null); setShowAddExpense(true);
   };
 
   const manualSum = useMemo(() => {
@@ -1058,7 +1063,6 @@ function TripsView({ db, save, logAction }) {
   const saveExpense = () => {
     const total = parseFloat(expAmt);
     if (!expDesc.trim() || !total || total <= 0 || !expPayer || expParticipants.length === 0) return;
-
     let finalShares = {};
     if (expSplitType === "equal") {
       finalShares = computeEqualShares(total, expParticipants);
@@ -1067,46 +1071,25 @@ function TripsView({ db, save, logAction }) {
         alert(`Sum of participant shares must equal total ₹${total}. Current difference: ₹${manualDiff}`);
         return;
       }
-      expParticipants.forEach(p => {
-        finalShares[p] = parseFloat(expManualShares[p]) || 0;
-      });
+      expParticipants.forEach(p => { finalShares[p] = parseFloat(expManualShares[p]) || 0; });
     }
-
     const expenseObj = {
-      id: editingExpenseId || uid(),
-      description: expDesc.trim(),
-      amount: total,
-      paidBy: expPayer,
-      participants: expParticipants,
-      splitType: expSplitType,
-      shares: finalShares,
-      date: expDate || todayStr(),
-      createdAt: Date.now()
+      id: editingExpenseId || uid(), description: expDesc.trim(), amount: total, paidBy: expPayer,
+      participants: expParticipants, splitType: expSplitType, shares: finalShares, date: expDate || todayStr(), createdAt: Date.now()
     };
-
     if (editingExpenseId) {
-      updateActiveTrip(t => ({
-        ...t,
-        expenses: t.expenses.map(e => e.id === editingExpenseId ? expenseObj : e)
-      }));
+      updateActiveTrip(t => ({ ...t, expenses: t.expenses.map(e => e.id === editingExpenseId ? expenseObj : e) }));
       logAction("Expense Edited", `Updated "${expenseObj.description}" (₹${total}) in ${activeTrip.name}`);
     } else {
-      updateActiveTrip(t => ({
-        ...t,
-        expenses: [expenseObj, ...t.expenses]
-      }));
+      updateActiveTrip(t => ({ ...t, expenses: [expenseObj, ...t.expenses] }));
       logAction("Expense Added", `Added "${expenseObj.description}" (₹${total}) in ${activeTrip.name}`);
     }
-
     setShowAddExpense(false);
   };
 
   const deleteExpense = (expId) => {
     const exp = activeTrip.expenses.find(e => e.id === expId);
-    updateActiveTrip(t => ({
-      ...t,
-      expenses: t.expenses.filter(e => e.id !== expId)
-    }));
+    updateActiveTrip(t => ({ ...t, expenses: t.expenses.filter(e => e.id !== expId) }));
     logAction("Expense Deleted", `Deleted "${exp ? exp.description : 'expense'}" in ${activeTrip.name}`);
     setSelectedExpense(null);
   };
@@ -1114,64 +1097,39 @@ function TripsView({ db, save, logAction }) {
   const tripBalances = useMemo(() => {
     if (!activeTrip) return {};
     const balances = {};
-    activeTrip.members.forEach(m => {
-      balances[m] = { paid: 0, owed: 0, net: 0 };
-    });
-
+    activeTrip.members.forEach(m => { balances[m] = { paid: 0, owed: 0, net: 0 }; });
     activeTrip.expenses.forEach(exp => {
       const payer = exp.paidBy;
       if (!balances[payer]) balances[payer] = { paid: 0, owed: 0, net: 0 };
       balances[payer].paid += exp.amount;
-
       Object.entries(exp.shares || {}).forEach(([member, share]) => {
         if (!balances[member]) balances[member] = { paid: 0, owed: 0, net: 0 };
         balances[member].owed += share;
       });
     });
-
-    Object.keys(balances).forEach(m => {
-      balances[m].net = Math.round((balances[m].paid - balances[m].owed) * 100) / 100;
-    });
-
+    Object.keys(balances).forEach(m => { balances[m].net = Math.round((balances[m].paid - balances[m].owed) * 100) / 100; });
     return balances;
   }, [activeTrip]);
 
   const settlementPayments = useMemo(() => {
     if (!activeTrip) return [];
-    const creditors = [];
-    const debtors = [];
-
+    const creditors = [], debtors = [];
     Object.entries(tripBalances).forEach(([member, data]) => {
       if (data.net > 0.005) creditors.push({ member, amount: data.net });
       else if (data.net < -0.005) debtors.push({ member, amount: -data.net });
     });
-
     creditors.sort((a, b) => b.amount - a.amount);
     debtors.sort((a, b) => b.amount - a.amount);
-
     const payments = [];
     let cIdx = 0, dIdx = 0;
-
     while (cIdx < creditors.length && dIdx < debtors.length) {
-      const c = creditors[cIdx];
-      const d = debtors[dIdx];
+      const c = creditors[cIdx], d = debtors[dIdx];
       const settledAmt = Math.min(c.amount, d.amount);
-
-      if (settledAmt > 0.005) {
-        payments.push({
-          from: d.member,
-          to: c.member,
-          amount: Math.round(settledAmt * 100) / 100
-        });
-      }
-
-      c.amount -= settledAmt;
-      d.amount -= settledAmt;
-
+      if (settledAmt > 0.005) payments.push({ from: d.member, to: c.member, amount: Math.round(settledAmt * 100) / 100 });
+      c.amount -= settledAmt; d.amount -= settledAmt;
       if (c.amount <= 0.005) cIdx++;
       if (d.amount <= 0.005) dIdx++;
     }
-
     return payments;
   }, [tripBalances]);
 
@@ -1183,17 +1141,13 @@ function TripsView({ db, save, logAction }) {
   if (activeTripId && activeTrip) {
     return (
       <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#f7f8fa"}}>
-        {/* Header */}
         <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:14,display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
           <div onClick={() => setActiveTripId(null)} style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>←</div>
           <div style={{flex:1,fontWeight:800,fontSize:18,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{activeTrip.name}</div>
           <div onClick={() => setShowMenu(true)}
-            style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:900,flexShrink:0}}>
-            ⋮
-          </div>
+            style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:900,flexShrink:0}}>⋮</div>
         </div>
 
-        {/* Content */}
         <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:140}}>
           <div className="card" style={{background:"linear-gradient(135deg, #065f46, #0d7c59)",color:"#fff",border:"none",padding:18}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
@@ -1207,7 +1161,6 @@ function TripsView({ db, save, logAction }) {
                 </div>
               </div>
             </div>
-
             <div style={{borderTop:"1px solid rgba(255,255,255,0.2)",paddingTop:10,display:"flex",flexWrap:"wrap",gap:8}}>
               {activeTrip.members.map(m => {
                 const net = tripBalances[m] ? tripBalances[m].net : 0;
@@ -1225,15 +1178,9 @@ function TripsView({ db, save, logAction }) {
           </div>
 
           <div style={{display:"flex",gap:8,marginBottom:16}}>
-            <button onClick={openNewExpense} className="btn-pill" style={{flex:1,background:NAVY,color:"#fff",fontSize:13}}>
-              + Add Expense
-            </button>
-            <button onClick={() => setShowBalances(true)} className="btn-pill" style={{background:"#fff",color:NAVY,border:"1.5px solid #e0e0e0",fontSize:13}}>
-              ⚖️ Balances
-            </button>
-            <button onClick={() => setShowSettlement(true)} className="btn-pill" style={{background:"#fff",color:GREEN,border:"1.5px solid #e0e0e0",fontSize:13}}>
-              🤝 Settle
-            </button>
+            <button onClick={openNewExpense} className="btn-pill" style={{flex:1,background:NAVY,color:"#fff",fontSize:13}}>+ Add Expense</button>
+            <button onClick={() => setShowBalances(true)} className="btn-pill" style={{background:"#fff",color:NAVY,border:"1.5px solid #e0e0e0",fontSize:13}}>⚖️ Balances</button>
+            <button onClick={() => setShowSettlement(true)} className="btn-pill" style={{background:"#fff",color:GREEN,border:"1.5px solid #e0e0e0",fontSize:13}}>🤝 Settle</button>
           </div>
 
           <div style={{fontWeight:800,fontSize:15,marginBottom:10,color:"#333",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1253,9 +1200,7 @@ function TripsView({ db, save, logAction }) {
                 style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:700,fontSize:15,color:"#1a1a1a",marginBottom:2}}>{ex.description}</div>
-                  <div style={{fontSize:12,color:"#757575"}}>
-                    Paid by <b style={{color:"#333"}}>{ex.paidBy}</b> • {ex.participants.length} people ({ex.splitType})
-                  </div>
+                  <div style={{fontSize:12,color:"#757575"}}>Paid by <b style={{color:"#333"}}>{ex.paidBy}</b> • {ex.participants.length} people ({ex.splitType})</div>
                   <div style={{fontSize:11,color:"#aaa",marginTop:2}}>{fmtDate(ex.date)}</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
@@ -1267,7 +1212,6 @@ function TripsView({ db, save, logAction }) {
           )}
         </div>
 
-        {/* Options Modal */}
         <Modal open={showMenu} onClose={() => setShowMenu(false)} title={`${activeTrip.name} — Options`}>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {[
@@ -1296,15 +1240,12 @@ function TripsView({ db, save, logAction }) {
           </div>
         </Modal>
 
-        {/* Members Modal */}
         <Modal open={showMembers} onClose={() => { setShowMembers(false); setMemberErr(""); }} title="Manage Members">
           <span style={lbl}>Add New Member</span>
           <div style={{display:"flex",gap:8,marginTop:6}}>
             <input value={newMemberName} onChange={e => { setNewMemberName(e.target.value); setMemberErr(""); }}
               placeholder="e.g. Rahul, Amit, Tuku" style={{...inp, marginTop:0, flex:1}}/>
-            <button onClick={addMember} className="btn-pill" style={{background:NAVY,color:"#fff",fontSize:13}}>
-              + Add
-            </button>
+            <button onClick={addMember} className="btn-pill" style={{background:NAVY,color:"#fff",fontSize:13}}>+ Add</button>
           </div>
           {memberErr && <div style={{fontSize:11,color:"#c62828",marginTop:6,fontWeight:600}}>{memberErr}</div>}
 
@@ -1320,33 +1261,41 @@ function TripsView({ db, save, logAction }) {
                   </div>
                   <div style={{fontWeight:700,fontSize:14}}>{m}</div>
                 </div>
-                {activeTrip.members.length > 1 && (
-                  <button onClick={() => removeMember(m)}
-                    style={{border:"none",borderRadius:6,padding:"4px 8px",background:"#ffebee",color:"#c62828",fontWeight:700,fontSize:12,cursor:"pointer"}}>
-                    Remove
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={() => { setEditingMember(m); setEditMemberName(m); }}
+                    style={{border:"none",borderRadius:6,padding:"4px 8px",background:"#e3f2fd",color:"#1976d2",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                    Edit
                   </button>
-                )}
+                  {activeTrip.members.length > 1 && (
+                    <button onClick={() => removeMember(m)}
+                      style={{border:"none",borderRadius:6,padding:"4px 8px",background:"#ffebee",color:"#c62828",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                      Remove
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
-          <button onClick={() => setShowMembers(false)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:20}}>
-            Close
+          <button onClick={() => setShowMembers(false)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:20}}>Close</button>
+        </Modal>
+
+        <Modal open={!!editingMember} onClose={() => setEditingMember(null)} title="Rename Member" center>
+          <span style={lbl}>Member Name</span>
+          <input value={editMemberName} onChange={e => setEditMemberName(e.target.value)} style={inp} autoFocus />
+          <button onClick={() => renameMember(editingMember, editMemberName)} className="btn-pill" style={{width:"100%",background:NAVY,color:"#fff",marginTop:18}}>
+            Update Member Name
           </button>
         </Modal>
 
-        {/* Add/Edit Expense Modal */}
         <Modal open={showAddExpense} onClose={() => setShowAddExpense(false)} title={editingExpenseId ? "Edit Expense" : "Add Expense"}>
           <span style={lbl}>Description *</span>
           <input value={expDesc} onChange={e => setExpDesc(e.target.value)} placeholder="e.g. Dinner, Fuel, Hotel..." style={inp}/>
-
           <span style={lbl}>Total Amount (₹) *</span>
           <input type="number" value={expAmt} onChange={e => setExpAmt(e.target.value)} placeholder="0.00" min="0" step="0.01" style={inp}/>
-
           <span style={lbl}>Paid by *</span>
           <select value={expPayer} onChange={e => setExpPayer(e.target.value)} style={{...inp, background:"#fff"}}>
             {activeTrip.members.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
-
           <span style={lbl}>Date</span>
           <input type="date" value={expDate} onChange={e => setExpDate(e.target.value)} style={inp}/>
 
@@ -1369,9 +1318,7 @@ function TripsView({ db, save, logAction }) {
                   else setExpParticipants([...expParticipants, m]);
                 }} style={{
                   padding:"6px 12px",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer",
-                  background: selected ? NAVY_LIGHT : "#f0f0f0",
-                  color: selected ? NAVY : "#777",
-                  border: selected ? `1px solid ${NAVY}` : "1px solid transparent"
+                  background: selected ? NAVY_LIGHT : "#f0f0f0", color: selected ? NAVY : "#777", border: selected ? `1px solid ${NAVY}` : "1px solid transparent"
                 }}>
                   {selected ? "✓ " : ""}{m}
                 </div>
@@ -1384,11 +1331,8 @@ function TripsView({ db, save, logAction }) {
             {[["equal", "Equal Split"], ["manual", "Manual Split"]].map(([t, label]) => (
               <div key={t} onClick={() => setExpSplitType(t)} style={{
                 flex:1,padding:"10px 8px",textAlign:"center",fontSize:13,fontWeight:700,cursor:"pointer",
-                background: expSplitType === t ? NAVY_LIGHT : "transparent",
-                color: expSplitType === t ? NAVY : "#757575"
-              }}>
-                {label}
-              </div>
+                background: expSplitType === t ? NAVY_LIGHT : "transparent", color: expSplitType === t ? NAVY : "#757575"
+              }}>{label}</div>
             ))}
           </div>
 
@@ -1396,16 +1340,10 @@ function TripsView({ db, save, logAction }) {
             <div style={{background:"#f9f9f9",borderRadius:10,padding:"12px 14px",marginTop:12,fontSize:13}}>
               {parseFloat(expAmt) > 0 && expParticipants.length > 0 ? (
                 <>
-                  <div style={{fontWeight:700,color:NAVY,marginBottom:6}}>
-                    ₹{(parseFloat(expAmt) / expParticipants.length).toFixed(2)} each ({expParticipants.length} people)
-                  </div>
-                  <div style={{fontSize:11,color:"#666"}}>
-                    Exact penny rounding guaranteed to total ₹{expAmt}.
-                  </div>
+                  <div style={{fontWeight:700,color:NAVY,marginBottom:6}}>₹{(parseFloat(expAmt) / expParticipants.length).toFixed(2)} each ({expParticipants.length} people)</div>
+                  <div style={{fontSize:11,color:"#666"}}>Exact penny rounding guaranteed to total ₹{expAmt}.</div>
                 </>
-              ) : (
-                <div style={{color:"#888"}}>Enter amount and participants to calculate.</div>
-              )}
+              ) : ( <div style={{color:"#888"}}>Enter amount and participants to calculate.</div> )}
             </div>
           )}
 
@@ -1416,13 +1354,8 @@ function TripsView({ db, save, logAction }) {
                 borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,fontWeight:700,
                 color: Math.abs(manualDiff) < 0.01 ? GREEN : manualDiff > 0 ? "#f57c00" : "#c62828"
               }}>
-                {Math.abs(manualDiff) < 0.01
-                  ? "✓ Perfectly balanced"
-                  : manualDiff > 0
-                  ? `Remaining: ₹${manualDiff}`
-                  : `Over-assigned: ₹${Math.abs(manualDiff)}`}
+                {Math.abs(manualDiff) < 0.01 ? "✓ Perfectly balanced" : manualDiff > 0 ? `Remaining: ₹${manualDiff}` : `Over-assigned: ₹${Math.abs(manualDiff)}`}
               </div>
-
               <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:180,overflowY:"auto"}}>
                 {expParticipants.map(p => (
                   <div key={p} style={{display:"flex",alignItems:"center",gap:10}}>
@@ -1430,8 +1363,7 @@ function TripsView({ db, save, logAction }) {
                     <div style={{display:"flex",alignItems:"center",border:"1.5px solid #e0e0e0",borderRadius:8,background:"#fff",width:130,overflow:"hidden"}}>
                       <span style={{padding:"6px 8px",fontSize:13,color:"#888"}}>₹</span>
                       <input type="number" step="0.01" value={expManualShares[p] || ""}
-                        onChange={e => setExpManualShares({ ...expManualShares, [p]: e.target.value })}
-                        placeholder="0.00"
+                        onChange={e => setExpManualShares({ ...expManualShares, [p]: e.target.value })} placeholder="0.00"
                         style={{border:"none",outline:"none",fontSize:14,fontWeight:700,flex:1,padding:"6px 8px",width:"100%"}}/>
                     </div>
                   </div>
@@ -1443,15 +1375,11 @@ function TripsView({ db, save, logAction }) {
           <button onClick={saveExpense}
             disabled={!expDesc.trim() || !(parseFloat(expAmt) > 0) || expParticipants.length === 0 || (expSplitType === "manual" && Math.abs(manualDiff) > 0.01)}
             className="btn-pill" style={{
-              width:"100%",marginTop:20,padding:14,fontSize:15,
-              background: (!expDesc.trim() || !(parseFloat(expAmt) > 0) || expParticipants.length === 0 || (expSplitType === "manual" && Math.abs(manualDiff) > 0.01)) ? "#ccc" : NAVY,
-              color:"#fff",cursor: "pointer"
-            }}>
-            Save Expense
-          </button>
+              width:"100%",marginTop:20,padding:14,fontSize:15, cursor: "pointer",
+              background: (!expDesc.trim() || !(parseFloat(expAmt) > 0) || expParticipants.length === 0 || (expSplitType === "manual" && Math.abs(manualDiff) > 0.01)) ? "#ccc" : NAVY, color:"#fff"
+            }}>Save Expense</button>
         </Modal>
 
-        {/* Detail Modal */}
         <Modal open={!!selectedExpense} onClose={() => setSelectedExpense(null)} title="Expense Details">
           {selectedExpense && (
             <div>
@@ -1462,48 +1390,33 @@ function TripsView({ db, save, logAction }) {
                 <div style={{fontSize:12,color:"#666",marginBottom:4}}>Date: <b>{fmtDate(selectedExpense.date)}</b></div>
                 <div style={{fontSize:12,color:"#666"}}>Split type: <b>{selectedExpense.splitType}</b></div>
               </div>
-
-              <div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",color:"#757575",letterSpacing:"0.06em",marginBottom:8}}>
-                Participants & Shares
-              </div>
+              <div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",color:"#757575",letterSpacing:"0.06em",marginBottom:8}}>Participants & Shares</div>
               <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
                 {Object.entries(selectedExpense.shares || {}).map(([m, share]) => (
                   <div key={m} style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",background:"#f9f9f9",borderRadius:8,fontSize:13}}>
-                    <span>{m}</span>
-                    <span style={{fontWeight:700}}>{fmtAmt(share)}</span>
+                    <span>{m}</span><span style={{fontWeight:700}}>{fmtAmt(share)}</span>
                   </div>
                 ))}
               </div>
-
               <div style={{display:"flex",gap:8}}>
-                <button onClick={() => openEditExpense(selectedExpense)} className="btn-pill" style={{flex:1,background:NAVY,color:"#fff"}}>
-                  ✎ Edit
-                </button>
-                <button onClick={() => deleteExpense(selectedExpense.id)} className="btn-pill" style={{flex:1,background:"#ffebee",color:"#c62828"}}>
-                  🗑️ Delete
-                </button>
+                <button onClick={() => openEditExpense(selectedExpense)} className="btn-pill" style={{flex:1,background:NAVY,color:"#fff"}}>✎ Edit</button>
+                <button onClick={() => deleteExpense(selectedExpense.id)} className="btn-pill" style={{flex:1,background:"#ffebee",color:"#c62828"}}>🗑️ Delete</button>
               </div>
             </div>
           )}
         </Modal>
 
-        {/* Balances Modal */}
         <Modal open={showBalances} onClose={() => setShowBalances(false)} title="Trip Balances">
-          <p style={{fontSize:13,color:"#666",marginBottom:16}}>
-            Net balance = (Total Amount Paid) − (Total Share Owed).
-          </p>
+          <p style={{fontSize:13,color:"#666",marginBottom:16}}>Net balance = (Total Amount Paid) − (Total Share Owed).</p>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {activeTrip.members.map(m => {
               const data = tripBalances[m] || { paid: 0, owed: 0, net: 0 };
-              const isPositive = data.net > 0;
-              const isNegative = data.net < 0;
+              const isPositive = data.net > 0, isNegative = data.net < 0;
               return (
                 <div key={m} style={{padding:"12px 14px",borderRadius:12,background:"#f9f9f9",border:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
                     <div style={{fontWeight:800,fontSize:15}}>{m}</div>
-                    <div style={{fontSize:11,color:"#757575",marginTop:2}}>
-                      Paid: {fmtAmt(data.paid)} • Owed: {fmtAmt(data.owed)}
-                    </div>
+                    <div style={{fontSize:11,color:"#757575",marginTop:2}}>Paid: {fmtAmt(data.paid)} • Owed: {fmtAmt(data.owed)}</div>
                   </div>
                   <div style={{textAlign:"right"}}>
                     <div style={{fontWeight:900,fontSize:16,color: isPositive ? GREEN : isNegative ? "#c62828" : "#888"}}>
@@ -1517,16 +1430,11 @@ function TripsView({ db, save, logAction }) {
               );
             })}
           </div>
-          <button onClick={() => setShowBalances(false)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:20}}>
-            Close
-          </button>
+          <button onClick={() => setShowBalances(false)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:20}}>Close</button>
         </Modal>
 
-        {/* Settlement Plan Modal */}
         <Modal open={showSettlement} onClose={() => setShowSettlement(false)} title="Settlement Plan">
-          <p style={{fontSize:13,color:"#666",marginBottom:16}}>
-            Minimized payment transactions to clear all debts:
-          </p>
+          <p style={{fontSize:13,color:"#666",marginBottom:16}}>Minimized payment transactions to clear all debts:</p>
           {settlementPayments.length === 0 ? (
             <div style={{textAlign:"center",padding:"40px 20px",color:GREEN}}>
               <div style={{fontSize:42,marginBottom:8}}>🎉</div>
@@ -1542,19 +1450,14 @@ function TripsView({ db, save, logAction }) {
                     <span style={{fontSize:13,color:"#666"}}>owes</span>
                     <span style={{fontWeight:800,fontSize:15,color:NAVY}}>{p.to}</span>
                   </div>
-                  <div style={{fontWeight:900,fontSize:17,color:GREEN}}>
-                    {fmtAmt(p.amount)}
-                  </div>
+                  <div style={{fontWeight:900,fontSize:17,color:GREEN}}>{fmtAmt(p.amount)}</div>
                 </div>
               ))}
             </div>
           )}
-          <button onClick={() => setShowSettlement(false)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:20}}>
-            Close
-          </button>
+          <button onClick={() => setShowSettlement(false)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:20}}>Close</button>
         </Modal>
 
-        {/* Edit Name Modal */}
         <Modal open={showEditTrip} onClose={() => setShowEditTrip(false)} title="Edit Trip Name" center>
           <span style={lbl}>Trip Name</span>
           <input value={editTripName} onChange={e => setEditTripName(e.target.value)} style={inp}/>
@@ -1563,24 +1466,18 @@ function TripsView({ db, save, logAction }) {
             updateActiveTrip(t => ({ ...t, name: editTripName.trim() }));
             logAction("Trip Renamed", `Renamed trip to "${editTripName.trim()}"`);
             setShowEditTrip(false);
-          }} className="btn-pill" style={{width:"100%",background:NAVY,color:"#fff",marginTop:18}}>
-            Save Name
-          </button>
+          }} className="btn-pill" style={{width:"100%",background:NAVY,color:"#fff",marginTop:18}}>Save Name</button>
         </Modal>
       </div>
     );
   }
 
-  // Trips List View
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#f7f8fa"}}>
       <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <div style={{fontSize:20,fontWeight:900,letterSpacing:"0.5px"}}>TRIPS</div>
-        <button onClick={() => setShowAddTrip(true)} className="btn-pill" style={{background:"rgba(255,255,255,0.2)",color:"#fff",fontSize:13,padding:"8px 14px"}}>
-          + New Trip
-        </button>
+        <button onClick={() => setShowAddTrip(true)} className="btn-pill" style={{background:"rgba(255,255,255,0.2)",color:"#fff",fontSize:13,padding:"8px 14px"}}>+ New Trip</button>
       </div>
-
       <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
         {trips.length === 0 ? (
           <div style={{textAlign:"center",padding:"80px 24px",color:"#aaa"}}>
@@ -1589,9 +1486,7 @@ function TripsView({ db, save, logAction }) {
             <div style={{fontSize:13,color:"#888",maxWidth:260,margin:"0 auto 20px"}}>
               Create a trip to manage group expenses, split bills, and calculate settlements easily.
             </div>
-            <button onClick={() => setShowAddTrip(true)} className="btn-pill" style={{background:NAVY,color:"#fff"}}>
-              + Create First Trip
-            </button>
+            <button onClick={() => setShowAddTrip(true)} className="btn-pill" style={{background:NAVY,color:"#fff"}}>+ Create First Trip</button>
           </div>
         ) : (
           trips.map(t => {
@@ -1603,25 +1498,18 @@ function TripsView({ db, save, logAction }) {
                   <span style={{fontSize:16,color:"#bbb"}}>›</span>
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}>
-                  <div style={{fontSize:12,color:"#757575"}}>
-                    {(t.members || []).length} Members • {(t.expenses || []).length} Expenses
-                  </div>
-                  <div style={{fontWeight:800,fontSize:16,color:NAVY}}>
-                    {fmtAmt(spent)}
-                  </div>
+                  <div style={{fontSize:12,color:"#757575"}}>{(t.members || []).length} Members • {(t.expenses || []).length} Expenses</div>
+                  <div style={{fontWeight:800,fontSize:16,color:NAVY}}>{fmtAmt(spent)}</div>
                 </div>
               </div>
             );
           })
         )}
       </div>
-
       <Modal open={showAddTrip} onClose={() => setShowAddTrip(false)} title="Create New Trip" center>
         <span style={lbl}>Trip Name *</span>
         <input value={tripName} onChange={e => setTripName(e.target.value)} placeholder="e.g. Goa Trip, Manali Weekend, Office Lunch" style={inp} autoFocus/>
-        <button onClick={createTrip} className="btn-pill" style={{width:"100%",background:NAVY,color:"#fff",marginTop:20,padding:13}}>
-          Create Trip
-        </button>
+        <button onClick={createTrip} className="btn-pill" style={{width:"100%",background:NAVY,color:"#fff",marginTop:20,padding:13}}>Create Trip</button>
       </Modal>
     </div>
   );
@@ -1635,34 +1523,24 @@ function ActivityHeatmapView({ db }) {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState(null);
 
-  // Derive real activity map from transactions, settlements, trips, expenses, and logs
   const { activityMap, detailMap, availableYears } = useMemo(() => {
-    const actMap = {};   // "YYYY-MM-DD" -> count
-    const detMap = {};   // "YYYY-MM-DD" -> item[]
-    const yearsSet = new Set([new Date().getFullYear()]);
-
+    const actMap = {}; const detMap = {}; const yearsSet = new Set([new Date().getFullYear()]);
     const addAct = (dateStr, type, title, detail) => {
       if (!dateStr || typeof dateStr !== "string") return;
       const d = dateStr.slice(0, 10);
       const yr = parseInt(d.split("-")[0]);
       if (!isNaN(yr)) yearsSet.add(yr);
-
       actMap[d] = (actMap[d] || 0) + 1;
       if (!detMap[d]) detMap[d] = [];
       detMap[d].push({ type, title, detail });
     };
 
-    // 1. Logs
-    (db.logs || []).forEach(l => {
-      addAct(l.date || todayStr(), "Log", l.title, l.details);
-    });
+    (db.logs || []).forEach(l => { addAct(l.date || todayStr(), "Log", l.title, l.details); });
 
-    // 2. Customer & Supplier Transactions
     Object.entries(db.transactions || {}).forEach(([entityId, txs]) => {
       const cust = (db.customers || []).find(c => c.id === entityId);
       const supp = (db.suppliers || []).find(s => s.id === entityId);
       const name = cust ? cust.name : supp ? supp.name : "Account";
-
       (txs || []).forEach(tx => {
         addAct(tx.date, "Transaction", `${tx.type === "debit" ? "Gave" : "Got"} ${fmtAmt(tx.amount)}`, `With ${name}${tx.note ? " (" + tx.note + ")" : ""}`);
         (tx.settlements || []).forEach(s => {
@@ -1671,7 +1549,6 @@ function ActivityHeatmapView({ db }) {
       });
     });
 
-    // 3. Trips & Expenses
     (db.trips || []).forEach(t => {
       if (t.createdAt) {
         const d = new Date(t.createdAt).toISOString().split("T")[0];
@@ -1682,104 +1559,60 @@ function ActivityHeatmapView({ db }) {
       });
     });
 
-    return {
-      activityMap: actMap,
-      detailMap: detMap,
-      availableYears: Array.from(yearsSet).sort((a,b) => b-a)
-    };
+    return { activityMap: actMap, detailMap: detMap, availableYears: Array.from(yearsSet).sort((a,b) => b-a) };
   }, [db]);
 
-  // Streaks & Stats Calculation
   const stats = useMemo(() => {
-    let yearTotal = 0;
-    let activeDaysCount = 0;
-
+    let yearTotal = 0; let activeDaysCount = 0;
     Object.entries(activityMap).forEach(([d, count]) => {
-      if (d.startsWith(String(selectedYear))) {
-        yearTotal += count;
-        activeDaysCount++;
-      }
+      if (d.startsWith(String(selectedYear))) { yearTotal += count; activeDaysCount++; }
     });
 
-    // Compute streaks across full history up to today
     const activeDates = Object.keys(activityMap).sort();
-    let currentStreak = 0;
-    let longestStreak = 0;
+    let currentStreak = 0; let longestStreak = 0;
 
     if (activeDates.length > 0) {
-      let tempStreak = 1;
-      longestStreak = 1;
-
+      let tempStreak = 1; longestStreak = 1;
       for (let i = 1; i < activeDates.length; i++) {
-        const prev = new Date(activeDates[i-1]);
-        const curr = new Date(activeDates[i]);
+        const prev = new Date(activeDates[i-1]); const curr = new Date(activeDates[i]);
         const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 1) {
-          tempStreak++;
-        } else if (diffDays > 1) {
-          tempStreak = 1;
-        }
+        if (diffDays === 1) { tempStreak++; } else if (diffDays > 1) { tempStreak = 1; }
         if (tempStreak > longestStreak) longestStreak = tempStreak;
       }
-
-      // Check current streak relative to today
       const today = todayStr();
       const lastActive = activeDates[activeDates.length - 1];
       const diffToday = Math.round((new Date(today) - new Date(lastActive)) / (1000 * 60 * 60 * 24));
-
-      if (diffToday <= 1) {
-        currentStreak = tempStreak;
-      } else {
-        currentStreak = 0;
-      }
+      if (diffToday <= 1) { currentStreak = tempStreak; } else { currentStreak = 0; }
     }
-
     return { yearTotal, activeDaysCount, currentStreak, longestStreak };
   }, [activityMap, selectedYear]);
 
-  // Color Intensity mapping
   const getColor = count => {
-    if (!count) return "#ebedf0";
-    if (count === 1) return "#d1fae5";
-    if (count <= 3) return "#6ee7b7";
-    if (count <= 5) return "#059669";
+    if (!count) return "#ebedf0"; if (count === 1) return "#d1fae5";
+    if (count <= 3) return "#6ee7b7"; if (count <= 5) return "#059669";
     return "#065f46";
   };
 
-  // Build calendar months grid for selected year
   const monthsData = useMemo(() => {
     const months = [];
     for (let m = 0; m < 12; m++) {
       const firstDay = new Date(selectedYear, m, 1);
       const daysInMonth = new Date(selectedYear, m + 1, 0).getDate();
-      const startDayOfWeek = firstDay.getDay(); // 0 = Sun
+      const startDayOfWeek = firstDay.getDay(); 
 
       const days = [];
-      // Empty padding cells before month starts
-      for (let p = 0; p < startDayOfWeek; p++) {
-        days.push(null);
-      }
-      // Day cells
+      for (let p = 0; p < startDayOfWeek; p++) { days.push(null); }
       for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${selectedYear}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        days.push({
-          day: d,
-          dateStr: dateStr,
-          count: activityMap[dateStr] || 0
-        });
+        days.push({ day: d, dateStr: dateStr, count: activityMap[dateStr] || 0 });
       }
-      months.push({
-        monthName: new Date(selectedYear, m, 1).toLocaleString('en-IN', { month: 'short' }),
-        days
-      });
+      months.push({ monthName: new Date(selectedYear, m, 1).toLocaleString('en-IN', { month: 'short' }), days });
     }
     return months;
   }, [selectedYear, activityMap]);
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#f7f8fa"}}>
-      {/* Header */}
       <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <div>
           <div style={{fontSize:20,fontWeight:900,letterSpacing:"0.5px"}}>ACTIVITY HEATMAP</div>
@@ -1792,7 +1625,6 @@ function ActivityHeatmapView({ db }) {
       </div>
 
       <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
-        {/* Streak Metrics Cards */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
           <div className="card" style={{padding:12,textAlign:"center",margin:0}}>
             <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Total Actions ({selectedYear})</div>
@@ -1812,7 +1644,6 @@ function ActivityHeatmapView({ db }) {
           </div>
         </div>
 
-        {/* Intensity Legend */}
         <div className="card" style={{padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <span style={{fontSize:11,fontWeight:700,color:"#666"}}>Activity Intensity</span>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -1824,35 +1655,26 @@ function ActivityHeatmapView({ db }) {
           </div>
         </div>
 
-        {/* Months Calendar Grid */}
         <div className="card" style={{padding:14}}>
           <div style={{fontWeight:800,fontSize:14,marginBottom:12,color:"#333"}}>
             {selectedYear} Activity Calendar
           </div>
-
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(130px, 1fr))",gap:14}}>
             {monthsData.map((m, mIdx) => (
               <div key={mIdx} style={{background:"#f9f9f9",borderRadius:10,padding:8,border:"1px solid #eee"}}>
                 <div style={{fontSize:11,fontWeight:800,color:NAVY,marginBottom:6,textAlign:"center"}}>{m.monthName}</div>
-                {/* Weekday Labels */}
                 <div style={{display:"grid",gridTemplateColumns:"repeat(7, 1fr)",gap:2,textAlign:"center",marginBottom:4}}>
                   {["S","M","T","W","T","F","S"].map((d, i) => (
                     <span key={i} style={{fontSize:8,fontWeight:700,color:"#aaa"}}>{d}</span>
                   ))}
                 </div>
-                {/* Day Cells */}
                 <div style={{display:"grid",gridTemplateColumns:"repeat(7, 1fr)",gap:3}}>
                   {m.days.map((d, dIdx) => {
                     if (!d) return <div key={dIdx} style={{height:13}}/>;
                     return (
                       <div key={dIdx} onClick={() => d.count > 0 && setSelectedDate(d.dateStr)}
-                        className="heatmap-day"
-                        title={`${d.dateStr}: ${d.count} activities`}
-                        style={{
-                          height:13,
-                          background: getColor(d.count),
-                          cursor: d.count > 0 ? "pointer" : "default"
-                        }}/>
+                        className="heatmap-day" title={`${d.dateStr}: ${d.count} activities`}
+                        style={{ height:13, background: getColor(d.count), cursor: d.count > 0 ? "pointer" : "default" }}/>
                     );
                   })}
                 </div>
@@ -1862,7 +1684,6 @@ function ActivityHeatmapView({ db }) {
         </div>
       </div>
 
-      {/* Day Details Modal */}
       <Modal open={!!selectedDate} onClose={() => setSelectedDate(null)} title={`Activity on ${fmtDate(selectedDate)}`}>
         {selectedDate && (
           <div>
@@ -1874,17 +1695,13 @@ function ActivityHeatmapView({ db }) {
                 <div key={idx} style={{padding:"10px 12px",borderRadius:10,background:"#f5f5f5",borderLeft:`4px solid ${NAVY}`}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
                     <span style={{fontWeight:800,fontSize:13,color:"#1a1a1a"}}>{item.title}</span>
-                    <span style={{fontSize:10,fontWeight:700,background:NAVY_LIGHT,color:NAVY,padding:"2px 6px",borderRadius:4}}>
-                      {item.type}
-                    </span>
+                    <span style={{fontSize:10,fontWeight:700,background:NAVY_LIGHT,color:NAVY,padding:"2px 6px",borderRadius:4}}>{item.type}</span>
                   </div>
                   <div style={{fontSize:12,color:"#666"}}>{item.detail}</div>
                 </div>
               ))}
             </div>
-            <button onClick={() => setSelectedDate(null)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:16}}>
-              Close
-            </button>
+            <button onClick={() => setSelectedDate(null)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:16}}>Close</button>
           </div>
         )}
       </Modal>
@@ -1897,52 +1714,27 @@ function ActivityHeatmapView({ db }) {
 // ══════════════════════════════════════════════════════════════
 
 function SettingsView({ db, save, logAction }) {
-  const [pinInput, setPinInput] = useState("");
-  const [showPinModal, setShowPinModal] = useState(false);
   const [restoreErr, setRestoreErr] = useState("");
-
-  const settings = db.settings || { appLockEnabled: false, pin: null, biometricsEnabled: false };
+  const settings = db.settings || { appLockEnabled: false };
 
   const toggleAppLock = () => {
-    if (settings.appLockEnabled) {
-      save({ ...db, settings: { ...settings, appLockEnabled: false, pin: null } });
-      logAction("Security", "Disabled App Lock");
-    } else {
-      setShowPinModal(true);
-    }
+    const nextState = !settings.appLockEnabled;
+    save({ ...db, settings: { ...settings, appLockEnabled: nextState } });
+    logAction("Security", `${nextState ? "Enabled" : "Disabled"} Native Security Lock`);
   };
 
-  const setPin = () => {
-    if (pinInput.length !== 4 || isNaN(pinInput)) {
-      alert("PIN must be 4 digits!");
-      return;
-    }
-    save({ ...db, settings: { ...settings, appLockEnabled: true, pin: pinInput } });
-    logAction("Security", "Enabled App Lock with PIN");
-    setShowPinModal(false);
-    setPinInput("");
-  };
-
-  const toggleBiometrics = () => {
-    const next = !settings.biometricsEnabled;
-    save({ ...db, settings: { ...settings, biometricsEnabled: next } });
-    logAction("Security", `${next ? "Enabled" : "Disabled"} Biometric Unlock`);
-  };
-
-  // Export JSON file backup
   const exportBackup = () => {
     const jsonStr = JSON.stringify(db, null, 2);
     const blob = new Blob([jsonStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `fireball_backup_${todayStr()}.json`;
+    a.download = `redorbit_backup_${todayStr()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     logAction("Backup", "Exported application backup JSON file");
   };
 
-  // Restore JSON backup
   const importBackup = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -1955,12 +1747,8 @@ function SettingsView({ db, save, logAction }) {
           logAction("Restore", "Restored data from JSON backup file");
           alert("Backup restored successfully!");
           setRestoreErr("");
-        } else {
-          setRestoreErr("Invalid backup file format!");
-        }
-      } catch (err) {
-        setRestoreErr("Error parsing backup JSON file!");
-      }
+        } else { setRestoreErr("Invalid backup file format!"); }
+      } catch (err) { setRestoreErr("Error parsing backup JSON file!"); }
     };
     reader.readAsText(file);
   };
@@ -1973,43 +1761,24 @@ function SettingsView({ db, save, logAction }) {
       </div>
 
       <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
-        {/* Security Section */}
-        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8}}>
-          App Security
-        </div>
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8}}>App Security</div>
         <div className="card" style={{padding:"14px 16px"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
-              <div style={{fontWeight:700,fontSize:15}}>App Lock (PIN)</div>
-              <div style={{fontSize:12,color:"#757575"}}>Require 4-digit PIN to open application</div>
+              <div style={{fontWeight:700,fontSize:15}}>Native App Lock</div>
+              <div style={{fontSize:12,color:"#757575"}}>Require Android Biometrics / Device PIN to open</div>
             </div>
             <div className={`toggle-switch ${settings.appLockEnabled ? "on" : ""}`} onClick={toggleAppLock}/>
           </div>
-
-          {settings.appLockEnabled && (
-            <div style={{borderTop:"1px solid #eee",paddingTop:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div>
-                <div style={{fontWeight:700,fontSize:15}}>Biometric Authentication</div>
-                <div style={{fontSize:12,color:"#757575"}}>Use Fingerprint / Face Unlock via Android</div>
-              </div>
-              <div className={`toggle-switch ${settings.biometricsEnabled ? "on" : ""}`} onClick={toggleBiometrics}/>
-            </div>
-          )}
         </div>
 
-        {/* Backup & Restore Section */}
-        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8,marginTop:16}}>
-          Data Backup & Restore
-        </div>
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8,marginTop:16}}>Data Backup & Restore</div>
         <div className="card" style={{padding:"16px"}}>
           <div style={{marginBottom:14}}>
             <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>Export Backup File</div>
             <div style={{fontSize:12,color:"#757575",marginBottom:10}}>Save all customers, suppliers, trips, and transactions to a local file</div>
-            <button onClick={exportBackup} className="btn-pill" style={{background:NAVY,color:"#fff",width:"100%",fontSize:14}}>
-              📥 Download Backup (.json)
-            </button>
+            <button onClick={exportBackup} className="btn-pill" style={{background:NAVY,color:"#fff",width:"100%",fontSize:14}}>📥 Download Backup</button>
           </div>
-
           <div style={{borderTop:"1px solid #eee",paddingTop:14}}>
             <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>Restore Backup File</div>
             <div style={{fontSize:12,color:"#757575",marginBottom:10}}>Load previously saved application backup</div>
@@ -2021,38 +1790,22 @@ function SettingsView({ db, save, logAction }) {
           </div>
         </div>
 
-        {/* Storage Summary */}
-        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8,marginTop:16}}>
-          Storage Summary
-        </div>
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8,marginTop:16}}>Storage Summary</div>
         <div className="card" style={{padding:"14px 16px"}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:13}}>
-            <span style={{color:"#666"}}>Customers Count</span>
-            <span style={{fontWeight:700}}>{(db.customers||[]).length}</span>
+            <span style={{color:"#666"}}>Customers Count</span><span style={{fontWeight:700}}>{(db.customers||[]).length}</span>
           </div>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:13}}>
-            <span style={{color:"#666"}}>Suppliers Count</span>
-            <span style={{fontWeight:700}}>{(db.suppliers||[]).length}</span>
+            <span style={{color:"#666"}}>Suppliers Count</span><span style={{fontWeight:700}}>{(db.suppliers||[]).length}</span>
           </div>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:13}}>
-            <span style={{color:"#666"}}>Trips Count</span>
-            <span style={{fontWeight:700}}>{(db.trips||[]).length}</span>
+            <span style={{color:"#666"}}>Trips Count</span><span style={{fontWeight:700}}>{(db.trips||[]).length}</span>
           </div>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
-            <span style={{color:"#666"}}>Persistence Layer</span>
-            <span style={{fontWeight:700,color:NAVY}}>AndroidBridge + Storage Fallback</span>
+            <span style={{color:"#666"}}>Persistence Layer</span><span style={{fontWeight:700,color:NAVY}}>AndroidBridge + Encrypted BSON</span>
           </div>
         </div>
       </div>
-
-      {/* Set PIN Modal */}
-      <Modal open={showPinModal} onClose={() => setShowPinModal(false)} title="Set 4-Digit Security PIN" center>
-        <span style={lbl}>Enter 4-Digit PIN *</span>
-        <input type="password" maxLength={4} value={pinInput} onChange={e => setPinInput(e.target.value)} placeholder="••••" style={{...inp, textAlign:"center", fontSize:22, letterSpacing:8}} autoFocus/>
-        <button onClick={setPin} className="btn-pill" style={{width:"100%",background:NAVY,color:"#fff",marginTop:20,padding:13}}>
-          Enable App Lock
-        </button>
-      </Modal>
     </div>
   );
 }
@@ -2063,68 +1816,55 @@ function SettingsView({ db, save, logAction }) {
 
 function AppLockOverlay({ settings, onUnlock }) {
   useEffect(() => {
-    // 1. Define global callback for Kotlin
     window.onBiometricResult = (success, message) => {
-      if (success) {
-        onUnlock();
-      } else {
-        console.warn("Authentication failed or canceled:", message);
-      }
+      if (success) { onUnlock(); } 
+      else { console.warn("Authentication failed or canceled:", message); }
     };
-
-    // 2. Trigger Biometric Prompt
     if (window.AndroidBridge && window.AndroidBridge.authenticateBiometric) {
       window.AndroidBridge.authenticateBiometric();
     }
-
-    return () => {
-      delete window.onBiometricResult;
-    };
+    return () => { delete window.onBiometricResult; };
   }, []);
 
   const triggerAuth = () => {
-    if (window.AndroidBridge && window.AndroidBridge.authenticateBiometric) {
-      window.AndroidBridge.authenticateBiometric();
-    } else {
-      // Manual fallback for browser testing only
-      onUnlock();
-    }
+    if (window.AndroidBridge && window.AndroidBridge.authenticateBiometric) { window.AndroidBridge.authenticateBiometric(); } 
+    else { onUnlock(); }
   };
 
   return (
     <div style={{ position: "fixed", inset: 0, background: NAVY, color: "#fff", zIndex: 99999, display: "flex", flexDirection: "column", alignItems: "center", justify: "center", padding: 24 }}>
       <div style={{ fontSize: 56, marginBottom: 12 }}>🔒</div>
-      <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Fire Ball</div>
+      <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Red Orbit</div>
       <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 24 }}>App is Locked</div>
-
       <button onClick={triggerAuth} className="btn-pill" style={{ background: "rgba(255,255,255,0.2)", color: "#fff", padding: "12px 24px", fontSize: 15 }}>
         👆 Unlock with Biometrics / PIN
       </button>
     </div>
   );
 }
+
 // ══════════════════════════════════════════════════════════════
 // 6. MAIN APPLICATION ROOT CONTAINER
 // ══════════════════════════════════════════════════════════════
 
 function App() {
   const [db, setDb] = useState(loadFromAllSources);
-  const [tab, setTab] = useState("customers"); // "customers" | "suppliers" | "trips" | "heatmap" | "settings"
+  const [tab, setTab] = useState("customers");
   const [activeEntityId, setActiveEntityId] = useState(null);
 
-  // 1. Initial lock state check (checks both appLockEnabled and biometricsEnabled)
+  // Remove splash screen cleanly after React runs
+  useEffect(() => {
+    const splash = document.getElementById("native-splash");
+    if (splash) {
+      splash.style.opacity = "0";
+      setTimeout(() => splash.remove(), 400); // Wait for transition
+    }
+  }, []);
+
   const [isLocked, setIsLocked] = useState(() => {
     const s = db && db.settings;
-    return Boolean(s && (s.appLockEnabled || s.biometricsEnabled));
+    return Boolean(s && s.appLockEnabled);
   });
-
-  // 2. Sync lock state if database updates from native Android storage on launch
-  useEffect(() => {
-    const s = db && db.settings;
-    if (s && (s.appLockEnabled || s.biometricsEnabled)) {
-      setIsLocked(true);
-    }
-  }, [db]);
 
   const save = useCallback((nextDb) => {
     setDb(nextDb);
@@ -2140,20 +1880,17 @@ function App() {
     });
   }, []);
 
-  // Return the lock overlay if the app should be locked
   if (isLocked) {
     return <AppLockOverlay settings={db.settings} onUnlock={() => setIsLocked(false)} />;
   }
 
-  // Render main application interface
   return (
     <div style={{maxWidth:480,margin:"0 auto",height:"100vh",background:"#f7f8fa",position:"relative",overflow:"hidden",display:"flex",flexDirection:"column"}}>
-      {/* Top Header App Bar (when not in detail views) */}
       {!activeEntityId && (
         <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900}}>🔥</div>
-            <div style={{fontWeight:900,fontSize:18,letterSpacing:"0.5px"}}>FIRE BALL</div>
+            <div style={{fontWeight:900,fontSize:18,letterSpacing:"0.5px"}}>Red Orbit</div>
           </div>
           <div style={{fontSize:12,fontWeight:700,background:NAVY_LIGHT,color:NAVY,padding:"4px 10px",borderRadius:20}}>
             My Accounts
@@ -2161,47 +1898,25 @@ function App() {
         </div>
       )}
 
-      {/* Main Content Router */}
       <div style={{flex:1,position:"relative",overflow:"hidden"}}>
         {activeEntityId ? (
           <CustomerSupplierLedger
-            db={db}
-            save={save}
-            entityId={activeEntityId}
-            listKey={tab === "suppliers" ? "suppliers" : "customers"}
-            accentColor={tab === "suppliers" ? "#1a3a6b" : NAVY}
-            accentLight={tab === "suppliers" ? "#e8eaf6" : NAVY_LIGHT}
-            onBack={() => setActiveEntityId(null)}
-            logAction={logAction}/>
+            db={db} save={save} entityId={activeEntityId} listKey={tab === "suppliers" ? "suppliers" : "customers"}
+            accentColor={tab === "suppliers" ? "#1a3a6b" : NAVY} accentLight={tab === "suppliers" ? "#e8eaf6" : NAVY_LIGHT}
+            onBack={() => setActiveEntityId(null)} logAction={logAction}/>
         ) : (
           <>
-            {tab === "customers" && (
-              <EntityList db={db} save={save} tab="customers" accentColor={NAVY} accentLight={NAVY_LIGHT} onOpen={setActiveEntityId} logAction={logAction}/>
-            )}
-            {tab === "suppliers" && (
-              <EntityList db={db} save={save} tab="suppliers" accentColor="#1a3a6b" accentLight="#e8eaf6" onOpen={setActiveEntityId} logAction={logAction}/>
-            )}
-            {tab === "trips" && (
-              <TripsView db={db} save={save} logAction={logAction}/>
-            )}
-            {tab === "heatmap" && (
-              <ActivityHeatmapView db={db}/>
-            )}
-            {tab === "settings" && (
-              <SettingsView db={db} save={save} logAction={logAction}/>
-            )}
+            {tab === "customers" && <EntityList db={db} save={save} tab="customers" accentColor={NAVY} accentLight={NAVY_LIGHT} onOpen={setActiveEntityId} logAction={logAction}/>}
+            {tab === "suppliers" && <EntityList db={db} save={save} tab="suppliers" accentColor="#1a3a6b" accentLight="#e8eaf6" onOpen={setActiveEntityId} logAction={logAction}/>}
+            {tab === "trips" && <TripsView db={db} save={save} logAction={logAction}/>}
+            {tab === "heatmap" && <ActivityHeatmapView db={db}/>}
+            {tab === "settings" && <SettingsView db={db} save={save} logAction={logAction}/>}
           </>
         )}
       </div>
 
-      {/* Sticky Bottom Navigation Bar */}
       {!activeEntityId && (
-        <div style={{
-          position:"fixed",bottom:0,left:0,right:0,maxWidth:480,margin:"0 auto",
-          background:"#ffffff",borderTop:"1px solid #e5e7eb",
-          display:"flex",alignItems:"center",zIndex:100,
-          paddingBottom:"max(6px, env(safe-area-inset-bottom, 6px))"
-        }}>
+        <div style={{ position:"fixed",bottom:0,left:0,right:0,maxWidth:480,margin:"0 auto", background:"#ffffff",borderTop:"1px solid #e5e7eb", display:"flex",alignItems:"center",zIndex:100, paddingBottom:"max(6px, env(safe-area-inset-bottom, 6px))" }}>
           {[
             { id: "customers", label: "Customers", icon: "👥" },
             { id: "suppliers", label: "Suppliers", icon: "🏭" },
