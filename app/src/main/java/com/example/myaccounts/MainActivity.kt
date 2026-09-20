@@ -165,11 +165,10 @@ class MainActivity : AppCompatActivity() {
 
         val settings = webView.settings
 
-        settings.javaScriptEnabled = true
-        settings.domStorageEnabled = true
-
-        settings.allowFileAccess = true
-        settings.allowContentAccess = true
+        webView.settings.javaScriptEnabled = true
+        webView.settings.allowFileAccess = true
+        webView.settings.allowFileAccessFromFileURLs = true
+        webView.settings.allowUniversalAccessFromFileURLs = true
 
         // --------------------------------------------------------
         // JavaScript ↔ Android bridge  
