@@ -28,8 +28,14 @@ body {
   color: var(--text-main);
   overscroll-behavior: none;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   user-select: none;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
 }
 
 input, textarea, button, select {

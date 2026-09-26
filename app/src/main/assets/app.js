@@ -16,11 +16,11 @@ const fmtDate = d => {
   try {
     const parts = d.split("-");
     if (parts.length === 3) {
-      const dt = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      const dt = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
       return dt.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
     }
     return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-  } catch (e) { return d; }
+  } catch(e) { return d; }
 };
 const initials = n => (n || "").trim().split(" ").filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "??";
 
@@ -28,9 +28,9 @@ const initials = n => (n || "").trim().split(" ").filter(Boolean).map(w => w[0])
 const INIT = {
   customers: [],
   suppliers: [],
-  transactions: {},
-  trips: [],
-  logs: [],
+  transactions: {}, 
+  trips: [],        
+  logs: [],         
   settings: {
     appLockEnabled: false,
     biometricsEnabled: false
@@ -52,7 +52,7 @@ function loadFromAllSources() {
   try {
     const d = JSON.parse(localStorage.getItem("redorbit_db") || "null");
     if (d && (d.customers || d.trips || d.transactions)) return { ...INIT, ...d };
-  } catch (e) { }
+  } catch (e) {}
   return INIT;
 }
 
@@ -63,7 +63,7 @@ function persistAllSources(data) {
       window.AndroidBridge.saveAppData(jsonStr);
     }
   } catch (e) { console.error("Native save failed", e); }
-  try { localStorage.setItem("redorbit_db", jsonStr); } catch (e) { }
+  try { localStorage.setItem("redorbit_db", jsonStr); } catch (e) {}
 }
 
 // ── SETTLEMENT & STATS HELPERS ───────────────────────────────
@@ -116,29 +116,37 @@ const lbl = {
   marginTop: 14
 };
 
-// ── MODAL COMPONENT ──────────────────────────────────────────
+// ── MODAL COMPONENT ─────────────────────
 function Modal({ open, onClose, title, children, center = false }) {
   if (!open) return null;
   if (center) {
     return (
       <div onClick={e => e.target === e.currentTarget && onClose()}
-        style={{ animation: "fadeIn 0.2s forwards", position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+        style={{animation:"fadeIn 0.2s forwards", position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div onClick={e => e.stopPropagation()}
-          style={{ animation: "slideUpFade 0.3s forwards", background: "#fff", borderRadius: 18, width: "100%", maxWidth: 400, padding: "22px 20px", boxShadow: "0 20px 50px rgba(0,0,0,0.3)", maxHeight: "90vh", overflowY: "auto" }}>
-          {title && <h3 style={{ marginBottom: 16, fontSize: 17, fontWeight: 700, color: "#1a1a1a" }}>{title}</h3>}
-          {children}
+          style={{animation:"slideUpFade 0.3s forwards", background:"#fff",borderRadius:18,width:"100%",maxWidth:400,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 50px rgba(0,0,0,0.3)"}}>
+          <div style={{padding:"22px 20px 10px", flexShrink:0}}>
+            {title && <h3 style={{fontSize:17,fontWeight:700,color:"#1a1a1a",margin:0}}>{title}</h3>}
+          </div>
+          <div style={{padding:"10px 20px 22px", overflowY:"auto"}}>
+            {children}
+          </div>
         </div>
       </div>
     );
   }
   return (
     <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ animation: "fadeIn 0.2s forwards", position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 900, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      style={{animation:"fadeIn 0.2s forwards", position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:9999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
       <div onClick={e => e.stopPropagation()}
-        style={{ animation: "modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards", background: "#fff", borderRadius: "22px 22px 0 0", width: "100%", maxWidth: 480, padding: "20px 20px 40px", maxHeight: "88vh", overflowY: "auto", boxShadow: "0 -8px 32px rgba(0,0,0,0.2)" }}>
-        <div style={{ width: 40, height: 4, background: "#e0e0e0", borderRadius: 2, margin: "0 auto 16px" }} />
-        {title && <h3 style={{ marginBottom: 16, fontSize: 18, fontWeight: 700, color: "#1a1a1a" }}>{title}</h3>}
-        {children}
+        style={{animation:"modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards", background:"#fff",borderRadius:"22px 22px 0 0",width:"100%",maxWidth:480,maxHeight:"85vh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 32px rgba(0,0,0,0.2)"}}>
+        <div style={{padding:"20px 20px 10px", flexShrink:0}}>
+          <div style={{width:40,height:4,background:"#e0e0e0",borderRadius:2,margin:"0 auto 16px"}}/>
+          {title && <h3 style={{fontSize:18,fontWeight:700,color:"#1a1a1a",margin:0}}>{title}</h3>}
+        </div>
+        <div style={{padding:"10px 20px 30px", overflowY:"auto"}}>
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -176,35 +184,35 @@ function EntityList({ db, save, tab, accentColor, accentLight, onOpen, onModalCh
   }
 
   return (
-    <div className="view-animate" style={{ display: "flex", flexDirection: "column", height: "100%", background: "#f7f8fa" }}>
-      <div style={{ background: accentColor, color: "#fff", padding: "16px 16px 20px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+    <div className="view-animate" style={{display:"flex",flexDirection:"column",height:"100%",flex:1,background:"#f7f8fa",overflow:"hidden"}}>
+      <div style={{background:accentColor,color:"#fff",padding:"16px 16px 20px", flexShrink:0}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           {[["You will Get", stats.totalGet, "↑"], ["You will Give", stats.totalGive, "↓"]].map(([label, val, icon]) => (
-            <div key={label} style={{ background: "rgba(255,255,255,0.18)", borderRadius: 14, padding: "12px 14px" }}>
-              <div style={{ fontSize: 10, opacity: 0.85, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4, fontWeight: 700 }}>
+            <div key={label} style={{background:"rgba(255,255,255,0.18)",borderRadius:14,padding:"12px 14px"}}>
+              <div style={{fontSize:10,opacity:0.85,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4,fontWeight:700}}>
                 {icon} {label}
               </div>
-              <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}>{fmtAmt(val)}</div>
+              <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.5px"}}>{fmtAmt(val)}</div>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ background: "#fff", padding: "10px 14px", borderBottom: "1px solid #eef0f3" }}>
-        <div style={{ display: "flex", alignItems: "center", background: "#f1f3f6", borderRadius: 12, padding: "0 14px", gap: 8 }}>
-          <span style={{ fontSize: 15, color: "#aaa" }}>🔍</span>
+      <div style={{background:"#fff",padding:"10px 14px",borderBottom:"1px solid #eef0f3", flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",background:"#f1f3f6",borderRadius:12,padding:"0 14px",gap:8}}>
+          <span style={{fontSize:15,color:"#aaa"}}>🔍</span>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Search ${isSupplier ? "suppliers" : "customers"}...`}
-            style={{ border: "none", background: "transparent", outline: "none", fontSize: 14, flex: 1, padding: "10px 0", color: "#212121" }} />
-          {search && <span onClick={() => setSearch("")} style={{ cursor: "pointer", color: "#999", fontSize: 16 }}>✕</span>}
+            style={{border:"none",background:"transparent",outline:"none",fontSize:14,flex:1,padding:"10px 0",color:"#212121"}}/>
+          {search && <span onClick={()=>setSearch("")} style={{cursor:"pointer",color:"#999",fontSize:16}}>✕</span>}
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", paddingBottom: 90 }}>
+      <div style={{flex:1,overflowY:"auto",paddingBottom:90}}>
         {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "64px 24px", color: "#bbb" }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
-            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: "#666" }}>No {isSupplier ? "Suppliers" : "Customers"} Yet</div>
-            <div style={{ fontSize: 13, color: "#999" }}>Tap the button below to add one.</div>
+          <div style={{textAlign:"center",padding:"64px 24px",color:"#bbb"}}>
+            <div style={{fontSize:48,marginBottom:12}}>📋</div>
+            <div style={{fontWeight:700,fontSize:16,marginBottom:6,color:"#666"}}>No {isSupplier ? "Suppliers" : "Customers"} Yet</div>
+            <div style={{fontSize:13,color:"#999"}}>Tap the button below to add one.</div>
           </div>
         ) : filtered.map(e => {
           const txs = db.transactions[e.id] || [];
@@ -224,25 +232,25 @@ function EntityList({ db, save, tab, accentColor, accentLight, onOpen, onModalCh
           }
           return (
             <div key={e.id} onClick={() => onOpen(e.id)} className="card"
-              style={{ margin: "10px 14px", display: "flex", alignItems: "center", gap: 14, border: "none", boxShadow: "0 2px 5px rgba(0,0,0,0.05)", cursor: "pointer" }}>
-              <div style={{ width: 44, height: 44, borderRadius: 14, background: e.color || accentColor, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
+              style={{margin: "10px 14px", display:"flex",alignItems:"center",gap:14,border:"none",boxShadow:"0 2px 5px rgba(0,0,0,0.05)",cursor:"pointer"}}>
+              <div style={{width:44,height:44,borderRadius:14,background:e.color||accentColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:15,flexShrink:0}}>
                 {initials(e.name)}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: "#1a1a1a" }}>{e.name}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:15,color:"#1a1a1a"}}>{e.name}</div>
               </div>
-              <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <div style={{ fontWeight: 800, fontSize: 15, color: bc }}>{fmtAmt(displayAmt)}</div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#666", marginTop: 2 }}>{bl}</div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontWeight:800,fontSize:15,color:bc}}>{fmtAmt(displayAmt)}</div>
+                <div style={{fontSize:11,fontWeight:600,color:"#666",marginTop:2}}>{bl}</div>
               </div>
             </div>
           );
         })}
       </div>
 
-      <div style={{ padding: "12px 16px 20px", background: "#fff", borderTop: "1px solid #eef0f3", position: "fixed", bottom: 60, left: 0, right: 0, maxWidth: 480, margin: "0 auto", zIndex: 50 }}>
+      <div style={{padding:"12px 16px 20px",background:"#fff",borderTop:"1px solid #eef0f3",position:"fixed",bottom:60,left:0,right:0,maxWidth:480,margin:"0 auto",zIndex:50}}>
         <button onClick={openAdd} className="btn-pill"
-          style={{ width: "100%", background: accentColor, color: "#fff", padding: "14px", fontSize: 15, boxShadow: "0 4px 12px rgba(6,95,70,0.3)" }}>
+          style={{width:"100%",background:accentColor,color:"#fff",padding:"14px",fontSize:15,boxShadow:"0 4px 12px rgba(6,95,70,0.3)"}}>
           + Add {isSupplier ? "Supplier" : "Customer"}
         </button>
       </div>
@@ -251,8 +259,8 @@ function EntityList({ db, save, tab, accentColor, accentLight, onOpen, onModalCh
         <span style={lbl}>Name *</span>
         <input value={name} onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === "Enter" && addEntity()}
-          placeholder={isSupplier ? "e.g. ABC Traders" : "e.g. Ramesh Kumar"} style={inp} autoFocus />
-        <button onClick={addEntity} className="btn-pill" style={{ marginTop: 20, width: "100%", padding: "13px", background: accentColor, color: "#fff" }}>
+          placeholder={isSupplier ? "e.g. ABC Traders" : "e.g. Ramesh Kumar"} style={inp} autoFocus/>
+        <button onClick={addEntity} className="btn-pill" style={{marginTop:20,width:"100%",padding:"13px",background:accentColor,color:"#fff"}}>
           Save
         </button>
       </Modal>
@@ -299,7 +307,7 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
     const amt = parseFloat(txAmt);
     if (!amt || amt <= 0) return;
     if (!isSupplier && txType === "credit") {
-      const pending = [...allTxs].sort((a, b) => new Date(a.date) - new Date(b.date) || a.createdAt - b.createdAt).filter(t => t.type === "debit" && getPending(t) > 0);
+      const pending = [...allTxs].sort((a,b) => new Date(a.date)-new Date(b.date) || a.createdAt-b.createdAt).filter(t => t.type === "debit" && getPending(t) > 0);
       if (pending.length > 0) {
         let rem = amt;
         updateTxs(txs => {
@@ -317,7 +325,7 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
       }
     }
     if (isSupplier && txType === "debit") {
-      const pending = [...allTxs].sort((a, b) => new Date(a.date) - new Date(b.date) || a.createdAt - b.createdAt).filter(t => t.type === "credit" && getPending(t) > 0);
+      const pending = [...allTxs].sort((a,b) => new Date(a.date)-new Date(b.date) || a.createdAt-b.createdAt).filter(t => t.type === "credit" && getPending(t) > 0);
       if (pending.length > 0) {
         let rem = amt;
         updateTxs(txs => {
@@ -429,45 +437,42 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
   const tabLabel = isSupplier ? "Payments Made" : "Payments Received";
 
   return (
-    <div className="view-animate" style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f7f8fa" }}>
+    <div className="view-animate" style={{display:"flex",flexDirection:"column",height:"100%",flex:1,background:"#f7f8fa"}}>
 
-      {/* ── HEADER WITH FIXED EDIT BUTTON ALIGNMENT ── */}
-      <div style={{ background: accentColor, color: "#fff", paddingTop: "calc(12px + env(safe-area-inset-top, 24px))", paddingLeft: 16, paddingRight: 16, paddingBottom: 14, display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-        <div onClick={onBack} style={{ cursor: "pointer", width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>←</div>
+      {/* ── HEADER ── */}
+      <div style={{background:accentColor,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:14,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+        <div onClick={onBack} style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>←</div>
 
-        {/* Name and Edit Button Container */}
-        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
-          <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: "0.2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div style={{flex:1, display:"flex", alignItems:"center", gap: 8, overflow:"hidden"}}>
+          <div style={{fontWeight:800,fontSize:17,letterSpacing:"0.2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
             {entity.name}
           </div>
           <div onClick={() => { setEditEntityName(entity.name); setShowEditEntity(true); }}
-            style={{ cursor: "pointer", background: "rgba(255,255,255,0.2)", borderRadius: "50%", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>
+               style={{cursor:"pointer", background:"rgba(255,255,255,0.2)", borderRadius:"50%", width: 28, height: 28, display:"flex", alignItems:"center", justifyContent:"center", fontSize: 13, flexShrink:0}}>
             ✎
           </div>
         </div>
 
-        <div onClick={() => setShowDelEntity(true)} style={{ cursor: "pointer", width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>✕</div>
+        <div onClick={()=>setShowDelEntity(true)} style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>🗑️</div>
       </div>
 
-      <div style={{ background: accentColor, paddingBottom: 20, flexShrink: 0 }}>
-        <div style={{ margin: "0 16px", background: "rgba(255,255,255,0.18)", borderRadius: 14, padding: "14px 18px", textAlign: "center" }}>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4, fontWeight: 700 }}>Current Balance</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: balColor }}>{balDisplay}</div>
+      <div style={{background:accentColor,paddingBottom:20,flexShrink:0}}>
+        <div style={{margin:"0 16px",background:"rgba(255,255,255,0.18)",borderRadius:14,padding:"14px 18px",textAlign:"center"}}>
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.8)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>Current Balance</div>
+          <div style={{fontSize:22,fontWeight:800,color:balColor}}>{balDisplay}</div>
         </div>
       </div>
 
-      <div style={{ padding: "10px 16px 0", background: "#f7f8fa", flexShrink: 0 }}>
-        <div style={{ display: "flex", background: "#e8eaed", borderRadius: 12, padding: 3 }}>
+      <div style={{padding:"10px 16px 0",background:"#f7f8fa",flexShrink:0}}>
+        <div style={{display:"flex",background:"#e8eaed",borderRadius:12,padding:3}}>
           {[["all", "All Entries"], ["payments", tabLabel]].map(([val, label]) => {
             const active = (val === "all" && !filterOn) || (val === "payments" && filterOn);
             return (
               <div key={val} onClick={() => setFilterOn(val === "payments")}
-                style={{
-                  flex: 1, textAlign: "center", padding: "9px 6px", borderRadius: 10, cursor: "pointer",
+                style={{flex:1,textAlign:"center",padding:"9px 6px",borderRadius:10,cursor:"pointer",
                   background: active ? "#fff" : "transparent",
                   color: active ? accentColor : "#777",
-                  fontWeight: active ? 700 : 500, fontSize: 13, transition: "background 0.2s"
-                }}>
+                  fontWeight: active ? 700 : 500, fontSize: 13, transition: "background 0.2s"}}>
                 {label}
               </div>
             );
@@ -475,32 +480,32 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", paddingTop: 8, paddingBottom: 90 }}>
+      <div style={{flex:1,overflowY:"auto",paddingTop:8,paddingBottom:90}}>
         {filterOn ? (
           relevantPayments.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "64px 24px", color: "#bbb" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>💵</div>
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: "#666" }}>No Payments Yet</div>
-              <div style={{ fontSize: 13, color: "#999" }}>Payments appear once transactions are settled.</div>
+            <div style={{textAlign:"center",padding:"64px 24px",color:"#bbb"}}>
+              <div style={{fontSize:48,marginBottom:12}}>💵</div>
+              <div style={{fontWeight:700,fontSize:16,marginBottom:6,color:"#666"}}>No Payments Yet</div>
+              <div style={{fontSize:13,color:"#999"}}>Payments appear once transactions are settled.</div>
             </div>
           ) : (
             <>
-              <div style={{ margin: "0 16px 10px", background: isSupplier ? accentLight : GREEN_LIGHT, borderRadius: 12, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: isSupplier ? accentColor : GREEN, textTransform: "uppercase" }}>Total {tabLabel}</span>
-                <span style={{ fontSize: 18, fontWeight: 800, color: isSupplier ? accentColor : GREEN }}>{fmtAmt(paymentTotal)}</span>
+              <div style={{margin:"0 16px 10px",background:isSupplier?accentLight:GREEN_LIGHT,borderRadius:12,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontSize:12,fontWeight:700,color:isSupplier?accentColor:GREEN,textTransform:"uppercase"}}>Total {tabLabel}</span>
+                <span style={{fontSize:18,fontWeight:800,color:isSupplier?accentColor:GREEN}}>{fmtAmt(paymentTotal)}</span>
               </div>
               {relevantPayments.map(p => (
                 <div key={p.id} onClick={() => openDetail(p.txId)} className="card"
-                  style={{ margin: "0 16px 12px", border: "none", background: "#fff", display: "flex", alignItems: "center", padding: "13px 16px", gap: 12, cursor: "pointer" }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: isSupplier ? accentLight : GREEN_LIGHT, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                  style={{margin:"0 16px 12px", border:"none", background:"#fff",display:"flex",alignItems:"center",padding:"13px 16px",gap:12,cursor:"pointer"}}>
+                  <div style={{width:40,height:40,borderRadius:12,flexShrink:0,background:isSupplier?accentLight:GREEN_LIGHT,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
                     {isSupplier ? "↗" : "↙"}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#333" }}>{isSupplier ? "Payment Made" : "Payment Received"}</div>
-                    {p.note ? <div style={{ fontSize: 12, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.note}</div> : null}
-                    <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{fmtDate(p.date)}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:14,fontWeight:700,color:"#333"}}>{isSupplier ? "Payment Made" : "Payment Received"}</div>
+                    {p.note ? <div style={{fontSize:12,color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.note}</div> : null}
+                    <div style={{fontSize:11,color:"#aaa",marginTop:2}}>{fmtDate(p.date)}</div>
                   </div>
-                  <div style={{ textAlign: "right", fontWeight: 800, fontSize: 15, color: isSupplier ? accentColor : GREEN }}>
+                  <div style={{textAlign:"right",fontWeight:800,fontSize:15,color:isSupplier?accentColor:GREEN}}>
                     {isSupplier ? "−" : "+"} {fmtAmt(p.amount)}
                   </div>
                 </div>
@@ -509,14 +514,14 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
           )
         ) : (
           sorted.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "64px 24px", color: "#bbb" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>📝</div>
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: "#666" }}>No Entries Yet</div>
-              <div style={{ fontSize: 13, color: "#999" }}>Use the buttons below to record a transaction.</div>
+            <div style={{textAlign:"center",padding:"64px 24px",color:"#bbb"}}>
+              <div style={{fontSize:48,marginBottom:12}}>📝</div>
+              <div style={{fontWeight:700,fontSize:16,marginBottom:6,color:"#666"}}>No Entries Yet</div>
+              <div style={{fontSize:13,color:"#999"}}>Use the buttons below to record a transaction.</div>
             </div>
           ) : dates.map(date => (
             <div key={date}>
-              <div style={{ padding: "10px 16px 5px", fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.08em", background: "#f7f8fa" }}>{fmtDate(date)}</div>
+              <div style={{padding:"10px 16px 5px",fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase",letterSpacing:"0.08em",background:"#f7f8fa"}}>{fmtDate(date)}</div>
               {groups[date].map(tx => {
                 const pending = getPending(tx), settled = getSettled(tx);
                 const isFullySettled = pending <= 0 && tx.amount > 0;
@@ -524,18 +529,18 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
                 const isCredit = tx.type === "credit";
                 return (
                   <div key={tx.id} onClick={() => openDetail(tx.id)} className="card"
-                    style={{ margin: "0 16px 12px", border: "none", background: "#fff", display: "flex", alignItems: "center", padding: "13px 16px", gap: 12, cursor: "pointer" }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: isFullySettled ? GREEN_LIGHT : isCredit ? GREEN_LIGHT : accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>
+                    style={{margin:"0 16px 12px", border:"none", background:"#fff",display:"flex",alignItems:"center",padding:"13px 16px",gap:12,cursor:"pointer"}}>
+                    <div style={{width:40,height:40,borderRadius:12,flexShrink:0,background:isFullySettled?GREEN_LIGHT:isCredit?GREEN_LIGHT:accentLight,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>
                       {isFullySettled ? "✓" : isCredit ? "↙" : "↗"}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      {tx.note && <div style={{ fontSize: 13, fontWeight: 600, color: "#333", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.note}</div>}
-                      {isFullySettled && <span style={{ fontSize: 11, color: GREEN, fontWeight: 700 }}>✓ Settled</span>}
-                      {isPartial && <span style={{ fontSize: 11, color: "#f57c00", fontWeight: 600 }}>{fmtAmt(pending)} left</span>}
-                      {!isFullySettled && !isPartial && <span style={{ fontSize: 11, color: "#999" }}>{tx.type === "debit" ? "You gave" : "You got"}</span>}
+                    <div style={{flex:1,minWidth:0}}>
+                      {tx.note && <div style={{fontSize:13,fontWeight:600,color:"#333",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.note}</div>}
+                      {isFullySettled && <span style={{fontSize:11,color:GREEN,fontWeight:700}}>✓ Settled</span>}
+                      {isPartial && <span style={{fontSize:11,color:"#f57c00",fontWeight:600}}>{fmtAmt(pending)} left</span>}
+                      {!isFullySettled && !isPartial && <span style={{fontSize:11,color:"#999"}}>{tx.type==="debit"?"You gave":"You got"}</span>}
                     </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontWeight: 800, fontSize: 15, color: isFullySettled ? GREEN : isCredit ? GREEN : accentColor }}>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{fontWeight:800,fontSize:15,color:isFullySettled?GREEN:isCredit?GREEN:accentColor}}>
                         {isCredit ? "+" : ""}{fmtAmt(tx.amount)}
                       </div>
                     </div>
@@ -545,45 +550,50 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
             </div>
           ))
         )}
+
+        {/* Helper Delete Button at Bottom of List */}
+        {allTxs.length > 0 && (
+          <div style={{padding:"24px 16px 16px", textAlign:"center"}}>
+            <button onClick={()=>setShowDelEntity(true)} className="btn-pill" style={{background:"transparent", border:"1.5px solid #ffcdd2", color:"#c62828", fontSize: 13, padding:"8px 16px"}}>
+              🗑️ Delete {isSupplier ? "Supplier" : "Customer"} Profile
+            </button>
+          </div>
+        )}
       </div>
 
-      <div style={{ display: "flex", padding: "12px 16px 20px", gap: 10, background: "#fff", borderTop: "1px solid #eef0f3", position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 480, margin: "0 auto", zIndex: 50 }}>
+      <div style={{display:"flex",padding:"12px 16px 20px",gap:10,background:"#fff",borderTop:"1px solid #eef0f3",position:"fixed",bottom:0,left:0,right:0,maxWidth:480,margin:"0 auto",zIndex:50}}>
         <button onClick={() => { setTxType("debit"); setTxAmt(""); setTxNote(""); setTxDate(todayStr()); setShowAddTx(true); }} className="btn-pill"
-          style={{ flex: 1, padding: "14px 8px", fontSize: 14, background: accentLight, color: accentColor }}>
+          style={{flex:1,padding:"14px 8px",fontSize:14,background:accentLight,color:accentColor}}>
           − You Gave
         </button>
         <button onClick={() => { setTxType("credit"); setTxAmt(""); setTxNote(""); setTxDate(todayStr()); setShowAddTx(true); }} className="btn-pill"
-          style={{ flex: 1, padding: "14px 8px", fontSize: 14, background: GREEN_LIGHT, color: GREEN }}>
+          style={{flex:1,padding:"14px 8px",fontSize:14,background:GREEN_LIGHT,color:GREEN}}>
           + You Got
         </button>
       </div>
 
       <Modal open={showAddTx} onClose={() => setShowAddTx(false)} title="Add Transaction">
-        <div style={{ display: "flex", border: "1.5px solid #e0e0e0", borderRadius: 10, overflow: "hidden", background: "#f5f5f5" }}>
+        <div style={{display:"flex",border:"1.5px solid #e0e0e0",borderRadius:10,overflow:"hidden",background:"#f5f5f5"}}>
           {[["debit", "− You Gave"], ["credit", "+ You Got"]].map(([t, label]) => (
-            <div key={t} onClick={() => setTxType(t)} style={{
-              flex: 1, padding: "11px 8px", textAlign: "center", fontSize: 13, fontWeight: 700, cursor: "pointer",
+            <div key={t} onClick={() => setTxType(t)} style={{flex:1,padding:"11px 8px",textAlign:"center",fontSize:13,fontWeight:700,cursor:"pointer",
               background: txType === t ? (t === "debit" ? accentLight : GREEN_LIGHT) : "transparent",
-              color: txType === t ? (t === "debit" ? accentColor : GREEN) : "#757575", transition: "all 0.2s"
-            }}>
+              color: txType === t ? (t === "debit" ? accentColor : GREEN) : "#757575", transition: "all 0.2s"}}>
               {label}
             </div>
           ))}
         </div>
         <span style={lbl}>Amount *</span>
-        <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #e0e0e0", borderRadius: 10, background: "#f5f5f5", overflow: "hidden", marginTop: 6 }}>
-          <span style={{ padding: "12px 10px 12px 14px", fontWeight: 700, color: "#757575", fontSize: 16 }}>₹</span>
+        <div style={{display:"flex",alignItems:"center",border:"1.5px solid #e0e0e0",borderRadius:10,background:"#f5f5f5",overflow:"hidden",marginTop:6}}>
+          <span style={{padding:"12px 10px 12px 14px",fontWeight:700,color:"#757575",fontSize:16}}>₹</span>
           <input type="number" value={txAmt} onChange={e => setTxAmt(e.target.value)} placeholder="0" min="0" step="0.01"
-            style={{ border: "none", background: "transparent", outline: "none", fontSize: 18, fontWeight: 700, flex: 1, padding: "12px 14px 12px 4px", color: "#212121" }} />
+            style={{border:"none",background:"transparent",outline:"none",fontSize:18,fontWeight:700,flex:1,padding:"12px 14px 12px 4px",color:"#212121"}}/>
         </div>
         <span style={lbl}>Note (optional)</span>
-        <textarea value={txNote} onChange={e => setTxNote(e.target.value)} placeholder="e.g. Grocery bill, Cash transfer..." rows={2} style={{ ...inp, resize: "vertical" }} />
+        <textarea value={txNote} onChange={e => setTxNote(e.target.value)} placeholder="e.g. Grocery bill, Cash transfer..." rows={2} style={{...inp, resize:"vertical"}}/>
         <span style={lbl}>Date</span>
-        <input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} style={inp} />
-        <button onClick={saveTx} className="btn-pill" style={{
-          marginTop: 20, width: "100%", padding: 14, fontSize: 15,
-          background: txType === "debit" ? accentColor : GREEN, color: "#fff"
-        }}>
+        <input type="date" value={txDate} onChange={e => setTxDate(e.target.value)} style={inp}/>
+        <button onClick={saveTx} className="btn-pill" style={{marginTop:20,width:"100%",padding:14,fontSize:15,
+          background: txType === "debit" ? accentColor : GREEN, color: "#fff"}}>
           Save — {txType === "debit" ? "You Gave" : "You Got"}
         </button>
       </Modal>
@@ -593,115 +603,115 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
           const tx = detailTx, pending = getPending(tx), settled = getSettled(tx), isDebit = tx.type === "debit", ac = isDebit ? accentColor : GREEN;
           return (
             <>
-              <div style={{ background: "#f5f5f5", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+              <div style={{background:"#f5f5f5",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
                 {[["Type", isDebit ? "↗ You Gave" : "↙ You Got"], ["Amount", (isDebit ? "" : "+") + fmtAmt(tx.amount)], ["Date", fmtDate(tx.date)]].map(([k, v]) => (
-                  <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, color: "#757575" }}>{k}</span>
-                    <span style={{ fontWeight: 700, fontSize: 13, color: k === "Amount" ? ac : "#212121" }}>{v}</span>
+                  <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                    <span style={{fontSize:12,color:"#757575"}}>{k}</span>
+                    <span style={{fontWeight:700,fontSize:13,color:k==="Amount"?ac:"#212121"}}>{v}</span>
                   </div>
                 ))}
-                <div style={{ marginTop: 6 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ fontSize: 12, color: "#757575" }}>Note</span>
-                    {!editingNote && tx.note && <span onClick={() => { setEditingNote(true); setNoteVal(tx.note || ""); }} style={{ fontSize: 11, color: accentColor, fontWeight: 700, cursor: "pointer" }}>✎ Edit</span>}
+                <div style={{marginTop:6}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                    <span style={{fontSize:12,color:"#757575"}}>Note</span>
+                    {!editingNote && tx.note && <span onClick={() => { setEditingNote(true); setNoteVal(tx.note || ""); }} style={{fontSize:11,color:accentColor,fontWeight:700,cursor:"pointer"}}>✎ Edit</span>}
                   </div>
                   {editingNote ? (
                     <>
                       <textarea value={noteVal} onChange={e => setNoteVal(e.target.value)} rows={2}
-                        style={{ width: "100%", border: "1.5px solid " + accentColor, borderRadius: 8, padding: "8px", fontSize: 13, outline: "none", background: "#fff", resize: "vertical" }} />
-                      <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                        style={{width:"100%",border:"1.5px solid "+accentColor,borderRadius:8,padding:"8px",fontSize:13,outline:"none",background:"#fff",resize:"vertical"}}/>
+                      <div style={{display:"flex",gap:8,marginTop:6}}>
                         <button onClick={() => { updateTxs(txs => txs.map(t => t.id === tx.id ? { ...t, note: noteVal.trim() } : t)); setEditingNote(false); }} className="btn-pill"
-                          style={{ flex: 1, padding: "8px", fontSize: 13, background: accentColor, color: "#fff" }}>Save</button>
+                          style={{flex:1,padding:"8px",fontSize:13,background:accentColor,color:"#fff"}}>Save</button>
                         <button onClick={() => setEditingNote(false)} className="btn-pill"
-                          style={{ flex: 1, padding: "8px", fontSize: 13, background: "#e0e0e0", color: "#555" }}>Cancel</button>
+                          style={{flex:1,padding:"8px",fontSize:13,background:"#e0e0e0",color:"#555"}}>Cancel</button>
                       </div>
                     </>
                   ) : tx.note ? (
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#212121" }}>{tx.note}</div>
+                    <div style={{fontSize:13,fontWeight:600,color:"#212121"}}>{tx.note}</div>
                   ) : (
                     <button onClick={() => { setEditingNote(true); setNoteVal(""); }}
-                      style={{ width: "100%", border: "1.5px dashed #ccc", borderRadius: 8, padding: 8, fontSize: 12, cursor: "pointer", background: "transparent", color: "#888", textAlign: "left" }}>
+                      style={{width:"100%",border:"1.5px dashed #ccc",borderRadius:8,padding:8,fontSize:12,cursor:"pointer",background:"transparent",color:"#888",textAlign:"left"}}>
                       + Add a note...
                     </button>
                   )}
                 </div>
               </div>
-              <button onClick={deleteTx} className="btn-pill" style={{ width: "100%", padding: "11px", fontSize: 13, background: "#ffebee", color: "#c62828", marginBottom: 16 }}>
+              <button onClick={deleteTx} className="btn-pill" style={{width:"100%",padding:"11px",fontSize:13,background:"#ffebee",color:"#c62828",marginBottom:16}}>
                 ✕ Delete Entry
               </button>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#555", marginBottom: 8 }}>Settle This Transaction</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
+              <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:"#555",marginBottom:8}}>Settle This Transaction</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
                 {[["Total", fmtAmt(tx.amount), "#212121"], ["Settled", fmtAmt(settled), GREEN], ["Pending", fmtAmt(pending), accentColor]].map(([l, v, c]) => (
-                  <div key={l} style={{ background: "#f5f5f5", borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
-                    <div style={{ fontSize: 10, color: "#757575", marginBottom: 2 }}>{l}</div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: c }}>{v}</div>
+                  <div key={l} style={{background:"#f5f5f5",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
+                    <div style={{fontSize:10,color:"#757575",marginBottom:2}}>{l}</div>
+                    <div style={{fontSize:13,fontWeight:800,color:c}}>{v}</div>
                   </div>
                 ))}
               </div>
               {pending <= 0 ? (
-                <div style={{ background: GREEN_LIGHT, color: GREEN, borderRadius: 10, padding: "12px 14px", textAlign: "center", fontWeight: 800, fontSize: 14, marginBottom: 14 }}>✓ Fully Settled!</div>
+                <div style={{background:GREEN_LIGHT,color:GREEN,borderRadius:10,padding:"12px 14px",textAlign:"center",fontWeight:800,fontSize:14,marginBottom:14}}>✓ Fully Settled!</div>
               ) : (
                 <>
-                  <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                    <button onClick={settleFull} className="btn-pill" style={{ flex: 1, padding: "10px 8px", fontSize: 12, background: GREEN_LIGHT, color: GREEN }}>
-                      ✓ {isDebit ? "Mark Received" : "Mark Paid"}<br /><span style={{ fontSize: 11, opacity: 0.85 }}>Full {fmtAmt(pending)}</span>
+                  <div style={{display:"flex",gap:8,marginBottom:10}}>
+                    <button onClick={settleFull} className="btn-pill" style={{flex:1,padding:"10px 8px",fontSize:12,background:GREEN_LIGHT,color:GREEN}}>
+                      ✓ {isDebit ? "Mark Received" : "Mark Paid"}<br/><span style={{fontSize:11,opacity:0.85}}>Full {fmtAmt(pending)}</span>
                     </button>
                     <button onClick={() => { setShowPartial(!showPartial); setPartialAmt(""); setEditErr(""); }} className="btn-pill"
-                      style={{ flex: 1, border: "1.5px solid #e0e0e0", padding: "10px 8px", fontSize: 12, background: showPartial ? "#fff3e0" : "#f5f5f5", color: showPartial ? "#f57c00" : "#666" }}>
-                      ⏱ Partial<br /><span style={{ fontSize: 11, opacity: 0.85 }}>Enter amount</span>
+                      style={{flex:1,border:"1.5px solid #e0e0e0",padding:"10px 8px",fontSize:12,background:showPartial?"#fff3e0":"#f5f5f5",color:showPartial?"#f57c00":"#666"}}>
+                      ⏱ Partial<br/><span style={{fontSize:11,opacity:0.85}}>Enter amount</span>
                     </button>
                   </div>
                   {showPartial && (
-                    <div style={{ marginBottom: 14 }}>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        <div style={{ display: "flex", flex: 1, border: "1.5px solid #e0e0e0", borderRadius: 8, overflow: "hidden", background: "#f5f5f5" }}>
-                          <span style={{ padding: "9px 6px 9px 12px", fontWeight: 700, color: "#757575", fontSize: 14 }}>₹</span>
+                    <div style={{marginBottom:14}}>
+                      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                        <div style={{display:"flex",flex:1,border:"1.5px solid #e0e0e0",borderRadius:8,overflow:"hidden",background:"#f5f5f5"}}>
+                          <span style={{padding:"9px 6px 9px 12px",fontWeight:700,color:"#757575",fontSize:14}}>₹</span>
                           <input type="number" value={partialAmt} onChange={e => { setPartialAmt(e.target.value); setEditErr(""); }}
                             placeholder={`max ${Math.round(pending)}`} min="0.01" step="0.01"
-                            style={{ border: "none", background: "transparent", outline: "none", fontSize: 14, flex: 1, padding: "9px 8px 9px 2px", color: "#212121" }} />
+                            style={{border:"none",background:"transparent",outline:"none",fontSize:14,flex:1,padding:"9px 8px 9px 2px",color:"#212121"}}/>
                         </div>
-                        <button onClick={settlePartial} className="btn-pill" style={{ padding: "10px 16px", fontSize: 13, background: accentColor, color: "#fff" }}>Save</button>
+                        <button onClick={settlePartial} className="btn-pill" style={{padding:"10px 16px",fontSize:13,background:accentColor,color:"#fff"}}>Save</button>
                       </div>
-                      {editErr && <div style={{ fontSize: 11, color: "#c62828", marginTop: 5 }}>{editErr}</div>}
+                      {editErr && <div style={{fontSize:11,color:"#c62828",marginTop:5}}>{editErr}</div>}
                     </div>
                   )}
                 </>
               )}
               {tx.settlements && tx.settlements.length > 0 && (
                 <>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#757575", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8, marginTop: 4 }}>Settlement History</div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#757575",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8,marginTop:4}}>Settlement History</div>
                   {tx.settlements.map((s, i) => (
-                    <div key={i} style={{ borderRadius: 8, marginBottom: 8, padding: "10px 12px", background: editIdx === i ? "#fff8e1" : GREEN_LIGHT, border: editIdx === i ? "1.5px solid #f57c00" : "1.5px solid transparent", transition: "all 0.2s" }}>
+                    <div key={i} style={{borderRadius:8,marginBottom:8,padding:"10px 12px",background:editIdx===i?"#fff8e1":GREEN_LIGHT,border:editIdx===i?"1.5px solid #f57c00":"1.5px solid transparent", transition: "all 0.2s"}}>
                       {editIdx === i ? (
                         <>
-                          <div style={{ fontSize: 11, color: "#f57c00", fontWeight: 700, marginBottom: 6 }}>Edit Payment #{i + 1}</div>
-                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <div style={{ display: "flex", flex: 1, border: "1.5px solid #e0e0e0", borderRadius: 8, overflow: "hidden", background: "#fff" }}>
-                              <span style={{ padding: "9px 6px 9px 12px", fontWeight: 700, color: "#757575", fontSize: 14 }}>₹</span>
+                          <div style={{fontSize:11,color:"#f57c00",fontWeight:700,marginBottom:6}}>Edit Payment #{i+1}</div>
+                          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                            <div style={{display:"flex",flex:1,border:"1.5px solid #e0e0e0",borderRadius:8,overflow:"hidden",background:"#fff"}}>
+                              <span style={{padding:"9px 6px 9px 12px",fontWeight:700,color:"#757575",fontSize:14}}>₹</span>
                               <input type="number" value={editVal} onChange={e => { setEditVal(e.target.value); setEditErr(""); }} min="0.01" step="0.01"
-                                style={{ border: "none", background: "transparent", outline: "none", fontSize: 14, flex: 1, padding: "9px 8px 9px 2px", color: "#212121" }} />
+                                style={{border:"none",background:"transparent",outline:"none",fontSize:14,flex:1,padding:"9px 8px 9px 2px",color:"#212121"}}/>
                             </div>
-                            <button onClick={saveEdit} className="btn-pill" style={{ padding: "10px 14px", fontSize: 13, background: GREEN, color: "#fff" }}>Save</button>
-                            <button onClick={() => { setEditIdx(null); setEditVal(""); setEditErr(""); }} className="btn-pill" style={{ padding: "10px 10px", fontSize: 13, background: "#f5f5f5", color: "#757575" }}>✕</button>
+                            <button onClick={saveEdit} className="btn-pill" style={{padding:"10px 14px",fontSize:13,background:GREEN,color:"#fff"}}>Save</button>
+                            <button onClick={() => { setEditIdx(null); setEditVal(""); setEditErr(""); }} className="btn-pill" style={{padding:"10px 10px",fontSize:13,background:"#f5f5f5",color:"#757575"}}>✕</button>
                           </div>
-                          {editErr && <div style={{ fontSize: 11, color: "#c62828", marginTop: 5 }}>{editErr}</div>}
+                          {editErr && <div style={{fontSize:11,color:"#c62828",marginTop:5}}>{editErr}</div>}
                         </>
                       ) : (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ flex: 1 }}>
-                            <span style={{ fontSize: 13, color: GREEN, fontWeight: 800 }}>✓ {fmtAmt(s.amount)}</span>
-                            {s.note && <div style={{ fontSize: 11, color: "#555", marginTop: 1 }}>{s.note}</div>}
-                            <div style={{ fontSize: 11, color: "#888", marginTop: 1 }}>{fmtDate(s.date)}</div>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{flex:1}}>
+                            <span style={{fontSize:13,color:GREEN,fontWeight:800}}>✓ {fmtAmt(s.amount)}</span>
+                            {s.note && <div style={{fontSize:11,color:"#555",marginTop:1}}>{s.note}</div>}
+                            <div style={{fontSize:11,color:"#888",marginTop:1}}>{fmtDate(s.date)}</div>
                           </div>
-                          <button onClick={() => startEdit(i)} className="btn-pill" style={{ padding: "5px 10px", fontSize: 12, background: "#fff3e0", color: "#f57c00" }}>Edit</button>
-                          <button onClick={() => removeSettlement(i)} className="btn-pill" style={{ padding: "5px 8px", fontSize: 12, background: "#f5f5f5", color: "#757575" }}>✕</button>
+                          <button onClick={() => startEdit(i)} className="btn-pill" style={{padding:"5px 10px",fontSize:12,background:"#fff3e0",color:"#f57c00"}}>Edit</button>
+                          <button onClick={() => removeSettlement(i)} className="btn-pill" style={{padding:"5px 8px",fontSize:12,background:"#f5f5f5",color:"#757575"}}>✕</button>
                         </div>
                       )}
                     </div>
                   ))}
                 </>
               )}
-              <button onClick={closeDetail} className="btn-pill" style={{ width: "100%", padding: "13px", fontSize: 14, background: "#f5f5f5", color: "#757575", marginTop: 8 }}>Close</button>
+              <button onClick={closeDetail} className="btn-pill" style={{width:"100%",padding:"13px",fontSize:14,background:"#f5f5f5",color:"#757575",marginTop:8}}>Close</button>
             </>
           );
         })()}
@@ -716,10 +726,10 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
       </Modal>
 
       <Modal open={showDelEntity} onClose={() => setShowDelEntity(false)} title={`Delete ${isSupplier ? "Supplier" : "Customer"}?`}>
-        <p style={{ fontSize: 14, color: "#555", marginBottom: 20 }}>This will permanently delete <b>{entity.name}</b> and all their recorded transactions.</p>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setShowDelEntity(false)} className="btn-pill" style={{ flex: 1, padding: "13px", fontSize: 14, background: "#f5f5f5", color: "#757575" }}>Cancel</button>
-          <button onClick={deleteEntity} className="btn-pill" style={{ flex: 1, padding: "13px", fontSize: 14, background: accentColor, color: "#fff" }}>Delete</button>
+        <p style={{fontSize:14,color:"#555",marginBottom:20}}>This will permanently delete <b>{entity.name}</b> and all their recorded transactions.</p>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={() => setShowDelEntity(false)} className="btn-pill" style={{flex:1,padding:"13px",fontSize:14,background:"#f5f5f5",color:"#757575"}}>Cancel</button>
+          <button onClick={deleteEntity} className="btn-pill" style={{flex:1,padding:"13px",fontSize:14,background:accentColor,color:"#fff"}}>Delete</button>
         </div>
       </Modal>
     </div>
@@ -952,35 +962,35 @@ function TripsView({ db, save, logAction }) {
 
   if (activeTripId && activeTrip) {
     return (
-      <div className="view-animate" style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f7f8fa" }}>
-        <div style={{ background: NAVY, color: "#fff", paddingTop: "calc(12px + env(safe-area-inset-top, 24px))", paddingLeft: 16, paddingRight: 16, paddingBottom: 14, display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-          <div onClick={() => setActiveTripId(null)} style={{ cursor: "pointer", width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>←</div>
-          <div style={{ flex: 1, fontWeight: 800, fontSize: 18, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{activeTrip.name}</div>
+      <div className="view-animate" style={{display:"flex",flexDirection:"column",height:"100%",flex:1,background:"#f7f8fa"}}>
+        <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:14,display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+          <div onClick={() => setActiveTripId(null)} style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>←</div>
+          <div style={{flex:1,fontWeight:800,fontSize:18,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{activeTrip.name}</div>
           <div onClick={() => setShowMenu(true)}
-            style={{ cursor: "pointer", width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 900, flexShrink: 0 }}>⋮</div>
+            style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:900,flexShrink:0}}>⋮</div>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: 16, paddingBottom: 140 }}>
-          <div className="card" style={{ background: "linear-gradient(135deg, #065f46, #0d7c59)", color: "#fff", border: "none", padding: 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+        <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:140}}>
+          <div className="card" style={{background:"linear-gradient(135deg, #065f46, #0d7c59)",color:"#fff",border:"none",padding:18}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
               <div>
-                <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", opacity: 0.8, fontWeight: 700 }}>Total Spent</div>
-                <div style={{ fontSize: 26, fontWeight: 900 }}>{fmtAmt(totalTripSpent)}</div>
+                <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:"0.08em",opacity:0.8,fontWeight:700}}>Total Spent</div>
+                <div style={{fontSize:26,fontWeight:900}}>{fmtAmt(totalTripSpent)}</div>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 12, fontWeight: 700, background: "rgba(255,255,255,0.2)", padding: "4px 10px", borderRadius: 20 }}>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:12,fontWeight:700,background:"rgba(255,255,255,0.2)",padding:"4px 10px",borderRadius:20}}>
                   {activeTrip.members.length} Members • {activeTrip.expenses.length} Expenses
                 </div>
               </div>
             </div>
-            <div style={{ borderTop: "1px solid rgba(255,255,255,0.2)", paddingTop: 10, display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div style={{borderTop:"1px solid rgba(255,255,255,0.2)",paddingTop:10,display:"flex",flexWrap:"wrap",gap:8}}>
               {activeTrip.members.map(m => {
                 const net = tripBalances[m] ? tripBalances[m].net : 0;
                 const isPositive = net > 0;
                 const isNegative = net < 0;
                 return (
-                  <div key={m} style={{ fontSize: 11, fontWeight: 700, background: "rgba(0,0,0,0.2)", padding: "4px 8px", borderRadius: 6 }}>
-                    {m}: <span style={{ color: isPositive ? "#a5d6a7" : isNegative ? "#ffcdd2" : "#fff" }}>
+                  <div key={m} style={{fontSize:11,fontWeight:700,background:"rgba(0,0,0,0.2)",padding:"4px 8px",borderRadius:6}}>
+                    {m}: <span style={{color: isPositive ? "#a5d6a7" : isNegative ? "#ffcdd2" : "#fff"}}>
                       {isPositive ? "+" : ""}{fmtAmt(net)}
                     </span>
                   </div>
@@ -989,35 +999,35 @@ function TripsView({ db, save, logAction }) {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <button onClick={openNewExpense} className="btn-pill" style={{ flex: 1, background: NAVY, color: "#fff", fontSize: 13 }}>+ Add Expense</button>
-            <button onClick={() => setShowBalances(true)} className="btn-pill" style={{ background: "#fff", color: NAVY, border: "1.5px solid #e0e0e0", fontSize: 13 }}>⚖️ Balances</button>
-            <button onClick={() => setShowSettlement(true)} className="btn-pill" style={{ background: "#fff", color: GREEN, border: "1.5px solid #e0e0e0", fontSize: 13 }}>🤝 Settle</button>
+          <div style={{display:"flex",gap:8,marginBottom:16}}>
+            <button onClick={openNewExpense} className="btn-pill" style={{flex:1,background:NAVY,color:"#fff",fontSize:13}}>+ Add Expense</button>
+            <button onClick={() => setShowBalances(true)} className="btn-pill" style={{background:"#fff",color:NAVY,border:"1.5px solid #e0e0e0",fontSize:13}}>⚖️ Balances</button>
+            <button onClick={() => setShowSettlement(true)} className="btn-pill" style={{background:"#fff",color:GREEN,border:"1.5px solid #e0e0e0",fontSize:13}}>🤝 Settle</button>
           </div>
 
-          <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 10, color: "#333", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{fontWeight:800,fontSize:15,marginBottom:10,color:"#333",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span>Expenses</span>
-            <span style={{ fontSize: 12, color: "#888" }}>{activeTrip.expenses.length} total</span>
+            <span style={{fontSize:12,color:"#888"}}>{activeTrip.expenses.length} total</span>
           </div>
 
           {activeTrip.expenses.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "50px 20px", color: "#aaa" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>💸</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#666", marginBottom: 4 }}>No Expenses Yet</div>
-              <div style={{ fontSize: 13 }}>Tap "+ Add Expense" or options menu to record spending.</div>
+            <div style={{textAlign:"center",padding:"50px 20px",color:"#aaa"}}>
+              <div style={{fontSize:48,marginBottom:12}}>💸</div>
+              <div style={{fontWeight:700,fontSize:16,color:"#666",marginBottom:4}}>No Expenses Yet</div>
+              <div style={{fontSize:13}}>Tap "+ Add Expense" or options menu to record spending.</div>
             </div>
           ) : (
             activeTrip.expenses.map(ex => (
               <div key={ex.id} className="card" onClick={() => setSelectedExpense(ex)}
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: "#1a1a1a", marginBottom: 2 }}>{ex.description}</div>
-                  <div style={{ fontSize: 12, color: "#757575" }}>Paid by <b style={{ color: "#333" }}>{ex.paidBy}</b> • {ex.participants.length} people ({ex.splitType})</div>
-                  <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{fmtDate(ex.date)}</div>
+                style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:15,color:"#1a1a1a",marginBottom:2}}>{ex.description}</div>
+                  <div style={{fontSize:12,color:"#757575"}}>Paid by <b style={{color:"#333"}}>{ex.paidBy}</b> • {ex.participants.length} people ({ex.splitType})</div>
+                  <div style={{fontSize:11,color:"#aaa",marginTop:2}}>{fmtDate(ex.date)}</div>
                 </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: NAVY }}>{fmtAmt(ex.amount)}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#888", textTransform: "uppercase" }}>{ex.splitType} split</div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontWeight:800,fontSize:16,color:NAVY}}>{fmtAmt(ex.amount)}</div>
+                  <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{ex.splitType} split</div>
                 </div>
               </div>
             ))
@@ -1025,30 +1035,28 @@ function TripsView({ db, save, logAction }) {
         </div>
 
         <Modal open={showMenu} onClose={() => setShowMenu(false)} title={`${activeTrip.name} — Options`}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {[
               { label: "👥 Manage Members", desc: "Add or remove trip members", action: () => { setShowMenu(false); setShowMembers(true); } },
               { label: "➕ Add Expense", desc: "Equal or manual split expense", action: () => { setShowMenu(false); openNewExpense(); } },
               { label: "⚖️ View Balances", desc: "See who paid vs who owes", action: () => { setShowMenu(false); setShowBalances(true); } },
               { label: "🤝 Settlement Details", desc: "Minimized payment transactions", action: () => { setShowMenu(false); setShowSettlement(true); } },
               { label: "✏️ Edit Trip Name", desc: "Rename this trip", action: () => { setShowMenu(false); setEditTripName(activeTrip.name); setShowEditTrip(true); } },
-              {
-                label: "🗑️ Delete Trip", desc: "Permanently delete this trip", color: "#c62828", action: () => {
-                  if (confirm(`Delete trip "${activeTrip.name}"? This cannot be undone.`)) {
-                    save({ ...db, trips: trips.filter(t => t.id !== activeTripId) });
-                    logAction("Trip Deleted", `Deleted trip "${activeTrip.name}"`);
-                    setActiveTripId(null);
-                  }
+              { label: "🗑️ Delete Trip", desc: "Permanently delete this trip", color: "#c62828", action: () => {
+                if (confirm(`Delete trip "${activeTrip.name}"? This cannot be undone.`)) {
+                  save({ ...db, trips: trips.filter(t => t.id !== activeTripId) });
+                  logAction("Trip Deleted", `Deleted trip "${activeTrip.name}"`);
+                  setActiveTripId(null);
                 }
-              }
+              }}
             ].map((item, idx) => (
               <div key={idx} onClick={item.action}
-                style={{ padding: "12px 14px", borderRadius: 12, background: "#f9f9f9", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #eee" }}>
+                style={{padding:"12px 14px",borderRadius:12,background:"#f9f9f9",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #eee"}}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: item.color || "#1a1a1a" }}>{item.label}</div>
-                  <div style={{ fontSize: 11, color: "#888" }}>{item.desc}</div>
+                  <div style={{fontWeight:700,fontSize:14,color:item.color||"#1a1a1a"}}>{item.label}</div>
+                  <div style={{fontSize:11,color:"#888"}}>{item.desc}</div>
                 </div>
-                <span style={{ fontSize: 16, color: "#bbb" }}>›</span>
+                <span style={{fontSize:16,color:"#bbb"}}>›</span>
               </div>
             ))}
           </div>
@@ -1056,33 +1064,33 @@ function TripsView({ db, save, logAction }) {
 
         <Modal open={showMembers} onClose={() => { setShowMembers(false); setMemberErr(""); }} title="Manage Members">
           <span style={lbl}>Add New Member</span>
-          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+          <div style={{display:"flex",gap:8,marginTop:6}}>
             <input value={newMemberName} onChange={e => { setNewMemberName(e.target.value); setMemberErr(""); }}
-              placeholder="e.g. Rahul, Amit, Tuku" style={{ ...inp, marginTop: 0, flex: 1 }} />
-            <button onClick={addMember} className="btn-pill" style={{ background: NAVY, color: "#fff", fontSize: 13 }}>+ Add</button>
+              placeholder="e.g. Rahul, Amit, Tuku" style={{...inp, marginTop:0, flex:1}}/>
+            <button onClick={addMember} className="btn-pill" style={{background:NAVY,color:"#fff",fontSize:13}}>+ Add</button>
           </div>
-          {memberErr && <div style={{ fontSize: 11, color: "#c62828", marginTop: 6, fontWeight: 600 }}>{memberErr}</div>}
+          {memberErr && <div style={{fontSize:11,color:"#c62828",marginTop:6,fontWeight:600}}>{memberErr}</div>}
 
-          <div style={{ marginTop: 20, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#888", letterSpacing: "0.06em" }}>
+          <div style={{marginTop:20,fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em"}}>
             Trip Members ({activeTrip.members.length})
           </div>
-          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8, maxHeight: 240, overflowY: "auto" }}>
+          <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
             {activeTrip.members.map(m => (
-              <div key={m} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f5f5f5", borderRadius: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: NAVY, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12 }}>
+              <div key={m} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",background:"#f5f5f5",borderRadius:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:32,height:32,borderRadius:8,background:NAVY,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12}}>
                     {initials(m)}
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{m}</div>
+                  <div style={{fontWeight:700,fontSize:14}}>{m}</div>
                 </div>
-                <div style={{ display: "flex", gap: 6 }}>
+                <div style={{display:"flex",gap:6}}>
                   <button onClick={() => { setEditingMember(m); setEditMemberName(m); }} className="btn-pill"
-                    style={{ padding: "4px 8px", background: "#e3f2fd", color: "#1976d2", fontSize: 12 }}>
+                    style={{padding:"4px 8px",background:"#e3f2fd",color:"#1976d2",fontSize:12}}>
                     Edit
                   </button>
                   {activeTrip.members.length > 1 && (
                     <button onClick={() => removeMember(m)} className="btn-pill"
-                      style={{ padding: "4px 8px", background: "#ffebee", color: "#c62828", fontSize: 12 }}>
+                      style={{padding:"4px 8px",background:"#ffebee",color:"#c62828",fontSize:12}}>
                       Remove
                     </button>
                   )}
@@ -1090,40 +1098,40 @@ function TripsView({ db, save, logAction }) {
               </div>
             ))}
           </div>
-          <button onClick={() => setShowMembers(false)} className="btn-pill" style={{ width: "100%", background: "#f5f5f5", color: "#666", marginTop: 20 }}>Close</button>
+          <button onClick={() => setShowMembers(false)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:20}}>Close</button>
         </Modal>
 
         <Modal open={!!editingMember} onClose={() => setEditingMember(null)} title="Rename Member" center>
           <span style={lbl}>Member Name</span>
           <input value={editMemberName} onChange={e => setEditMemberName(e.target.value)} style={inp} autoFocus />
-          <button onClick={() => renameMember(editingMember, editMemberName)} className="btn-pill" style={{ width: "100%", background: NAVY, color: "#fff", marginTop: 18 }}>
+          <button onClick={() => renameMember(editingMember, editMemberName)} className="btn-pill" style={{width:"100%",background:NAVY,color:"#fff",marginTop:18}}>
             Update Member Name
           </button>
         </Modal>
 
         <Modal open={showAddExpense} onClose={() => setShowAddExpense(false)} title={editingExpenseId ? "Edit Expense" : "Add Expense"}>
           <span style={lbl}>Description *</span>
-          <input value={expDesc} onChange={e => setExpDesc(e.target.value)} placeholder="e.g. Dinner, Fuel, Hotel..." style={inp} />
+          <input value={expDesc} onChange={e => setExpDesc(e.target.value)} placeholder="e.g. Dinner, Fuel, Hotel..." style={inp}/>
           <span style={lbl}>Total Amount (₹) *</span>
-          <input type="number" value={expAmt} onChange={e => setExpAmt(e.target.value)} placeholder="0.00" min="0" step="0.01" style={inp} />
+          <input type="number" value={expAmt} onChange={e => setExpAmt(e.target.value)} placeholder="0.00" min="0" step="0.01" style={inp}/>
           <span style={lbl}>Paid by *</span>
-          <select value={expPayer} onChange={e => setExpPayer(e.target.value)} style={{ ...inp, background: "#fff" }}>
+          <select value={expPayer} onChange={e => setExpPayer(e.target.value)} style={{...inp, background:"#fff"}}>
             {activeTrip.members.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
           <span style={lbl}>Date</span>
-          <input type="date" value={expDate} onChange={e => setExpDate(e.target.value)} style={inp} />
+          <input type="date" value={expDate} onChange={e => setExpDate(e.target.value)} style={inp}/>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, marginBottom: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#757575", letterSpacing: "0.06em" }}>Participants</span>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:16,marginBottom:6}}>
+            <span style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#757575",letterSpacing:"0.06em"}}>Participants</span>
             <span onClick={() => {
               if (expParticipants.length === activeTrip.members.length) setExpParticipants([]);
               else setExpParticipants([...activeTrip.members]);
-            }} style={{ fontSize: 11, fontWeight: 700, color: NAVY, cursor: "pointer" }}>
+            }} style={{fontSize:11,fontWeight:700,color:NAVY,cursor:"pointer"}}>
               {expParticipants.length === activeTrip.members.length ? "Deselect All" : "Select All"}
             </span>
           </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:12}}>
             {activeTrip.members.map(m => {
               const selected = expParticipants.includes(m);
               return (
@@ -1131,7 +1139,7 @@ function TripsView({ db, save, logAction }) {
                   if (selected) setExpParticipants(expParticipants.filter(p => p !== m));
                   else setExpParticipants([...expParticipants, m]);
                 }} style={{
-                  padding: "6px 12px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s",
+                  padding:"6px 12px",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer", transition: "all 0.2s",
                   background: selected ? NAVY_LIGHT : "#f0f0f0", color: selected ? NAVY : "#777", border: selected ? `1px solid ${NAVY}` : "1px solid transparent"
                 }}>
                   {selected ? "✓ " : ""}{m}
@@ -1141,44 +1149,44 @@ function TripsView({ db, save, logAction }) {
           </div>
 
           <span style={lbl}>Split Type</span>
-          <div style={{ display: "flex", border: "1.5px solid #e0e0e0", borderRadius: 10, overflow: "hidden", background: "#f5f5f5", marginTop: 6 }}>
+          <div style={{display:"flex",border:"1.5px solid #e0e0e0",borderRadius:10,overflow:"hidden",background:"#f5f5f5",marginTop:6}}>
             {[["equal", "Equal Split"], ["manual", "Manual Split"]].map(([t, label]) => (
               <div key={t} onClick={() => setExpSplitType(t)} style={{
-                flex: 1, padding: "10px 8px", textAlign: "center", fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s",
+                flex:1,padding:"10px 8px",textAlign:"center",fontSize:13,fontWeight:700,cursor:"pointer", transition: "all 0.2s",
                 background: expSplitType === t ? NAVY_LIGHT : "transparent", color: expSplitType === t ? NAVY : "#757575"
               }}>{label}</div>
             ))}
           </div>
 
           {expSplitType === "equal" && (
-            <div style={{ background: "#f9f9f9", borderRadius: 10, padding: "12px 14px", marginTop: 12, fontSize: 13 }}>
+            <div style={{background:"#f9f9f9",borderRadius:10,padding:"12px 14px",marginTop:12,fontSize:13}}>
               {parseFloat(expAmt) > 0 && expParticipants.length > 0 ? (
                 <>
-                  <div style={{ fontWeight: 700, color: NAVY, marginBottom: 6 }}>₹{(parseFloat(expAmt) / expParticipants.length).toFixed(2)} each ({expParticipants.length} people)</div>
-                  <div style={{ fontSize: 11, color: "#666" }}>Exact penny rounding guaranteed to total ₹{expAmt}.</div>
+                  <div style={{fontWeight:700,color:NAVY,marginBottom:6}}>₹{(parseFloat(expAmt) / expParticipants.length).toFixed(2)} each ({expParticipants.length} people)</div>
+                  <div style={{fontSize:11,color:"#666"}}>Exact penny rounding guaranteed to total ₹{expAmt}.</div>
                 </>
-              ) : (<div style={{ color: "#888" }}>Enter amount and participants to calculate.</div>)}
+              ) : ( <div style={{color:"#888"}}>Enter amount and participants to calculate.</div> )}
             </div>
           )}
 
           {expSplitType === "manual" && (
-            <div style={{ marginTop: 12 }}>
+            <div style={{marginTop:12}}>
               <div style={{
                 background: Math.abs(manualDiff) < 0.01 ? GREEN_LIGHT : manualDiff > 0 ? "#fff8e1" : "#ffebee",
-                borderRadius: 10, padding: "10px 14px", marginBottom: 10, fontSize: 13, fontWeight: 700, transition: "all 0.3s",
+                borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,fontWeight:700, transition: "all 0.3s",
                 color: Math.abs(manualDiff) < 0.01 ? GREEN : manualDiff > 0 ? "#f57c00" : "#c62828"
               }}>
                 {Math.abs(manualDiff) < 0.01 ? "✓ Perfectly balanced" : manualDiff > 0 ? `Remaining: ₹${manualDiff}` : `Over-assigned: ₹${Math.abs(manualDiff)}`}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 180, overflowY: "auto" }}>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
                 {expParticipants.map(p => (
-                  <div key={p} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, flex: 1 }}>{p}</span>
-                    <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #e0e0e0", borderRadius: 8, background: "#fff", width: 130, overflow: "hidden" }}>
-                      <span style={{ padding: "6px 8px", fontSize: 13, color: "#888" }}>₹</span>
+                  <div key={p} style={{display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:13,fontWeight:700,flex:1}}>{p}</span>
+                    <div style={{display:"flex",alignItems:"center",border:"1.5px solid #e0e0e0",borderRadius:8,background:"#fff",width:130,overflow:"hidden"}}>
+                      <span style={{padding:"6px 8px",fontSize:13,color:"#888"}}>₹</span>
                       <input type="number" step="0.01" value={expManualShares[p] || ""}
                         onChange={e => setExpManualShares({ ...expManualShares, [p]: e.target.value })} placeholder="0.00"
-                        style={{ border: "none", outline: "none", fontSize: 14, fontWeight: 700, flex: 1, padding: "6px 8px", width: "100%" }} />
+                        style={{border:"none",outline:"none",fontSize:14,fontWeight:700,flex:1,padding:"6px 8px",width:"100%"}}/>
                     </div>
                   </div>
                 ))}
@@ -1189,54 +1197,54 @@ function TripsView({ db, save, logAction }) {
           <button onClick={saveExpense}
             disabled={!expDesc.trim() || !(parseFloat(expAmt) > 0) || expParticipants.length === 0 || (expSplitType === "manual" && Math.abs(manualDiff) > 0.01)}
             className="btn-pill" style={{
-              width: "100%", marginTop: 20, padding: 14, fontSize: 15, cursor: "pointer",
-              background: (!expDesc.trim() || !(parseFloat(expAmt) > 0) || expParticipants.length === 0 || (expSplitType === "manual" && Math.abs(manualDiff) > 0.01)) ? "#ccc" : NAVY, color: "#fff"
+              width:"100%",marginTop:20,padding:14,fontSize:15, cursor: "pointer",
+              background: (!expDesc.trim() || !(parseFloat(expAmt) > 0) || expParticipants.length === 0 || (expSplitType === "manual" && Math.abs(manualDiff) > 0.01)) ? "#ccc" : NAVY, color:"#fff"
             }}>Save Expense</button>
         </Modal>
 
         <Modal open={!!selectedExpense} onClose={() => setSelectedExpense(null)} title="Expense Details">
           {selectedExpense && (
             <div>
-              <div style={{ background: "#f5f5f5", borderRadius: 10, padding: "14px", marginBottom: 16 }}>
-                <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{selectedExpense.description}</div>
-                <div style={{ fontSize: 22, fontWeight: 900, color: NAVY, marginBottom: 8 }}>{fmtAmt(selectedExpense.amount)}</div>
-                <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>Paid by: <b>{selectedExpense.paidBy}</b></div>
-                <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>Date: <b>{fmtDate(selectedExpense.date)}</b></div>
-                <div style={{ fontSize: 12, color: "#666" }}>Split type: <b>{selectedExpense.splitType}</b></div>
+              <div style={{background:"#f5f5f5",borderRadius:10,padding:"14px",marginBottom:16}}>
+                <div style={{fontSize:18,fontWeight:800,marginBottom:4}}>{selectedExpense.description}</div>
+                <div style={{fontSize:22,fontWeight:900,color:NAVY,marginBottom:8}}>{fmtAmt(selectedExpense.amount)}</div>
+                <div style={{fontSize:12,color:"#666",marginBottom:4}}>Paid by: <b>{selectedExpense.paidBy}</b></div>
+                <div style={{fontSize:12,color:"#666",marginBottom:4}}>Date: <b>{fmtDate(selectedExpense.date)}</b></div>
+                <div style={{fontSize:12,color:"#666"}}>Split type: <b>{selectedExpense.splitType}</b></div>
               </div>
-              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "#757575", letterSpacing: "0.06em", marginBottom: 8 }}>Participants & Shares</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+              <div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",color:"#757575",letterSpacing:"0.06em",marginBottom:8}}>Participants & Shares</div>
+              <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
                 {Object.entries(selectedExpense.shares || {}).map(([m, share]) => (
-                  <div key={m} style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: "#f9f9f9", borderRadius: 8, fontSize: 13 }}>
-                    <span>{m}</span><span style={{ fontWeight: 700 }}>{fmtAmt(share)}</span>
+                  <div key={m} style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",background:"#f9f9f9",borderRadius:8,fontSize:13}}>
+                    <span>{m}</span><span style={{fontWeight:700}}>{fmtAmt(share)}</span>
                   </div>
                 ))}
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => openEditExpense(selectedExpense)} className="btn-pill" style={{ flex: 1, background: NAVY, color: "#fff" }}>✎ Edit</button>
-                <button onClick={() => deleteExpense(selectedExpense.id)} className="btn-pill" style={{ flex: 1, background: "#ffebee", color: "#c62828" }}>🗑️ Delete</button>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={() => openEditExpense(selectedExpense)} className="btn-pill" style={{flex:1,background:NAVY,color:"#fff"}}>✎ Edit</button>
+                <button onClick={() => deleteExpense(selectedExpense.id)} className="btn-pill" style={{flex:1,background:"#ffebee",color:"#c62828"}}>🗑️ Delete</button>
               </div>
             </div>
           )}
         </Modal>
 
         <Modal open={showBalances} onClose={() => setShowBalances(false)} title="Trip Balances">
-          <p style={{ fontSize: 13, color: "#666", marginBottom: 16 }}>Net balance = (Total Amount Paid) − (Total Share Owed).</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <p style={{fontSize:13,color:"#666",marginBottom:16}}>Net balance = (Total Amount Paid) − (Total Share Owed).</p>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {activeTrip.members.map(m => {
               const data = tripBalances[m] || { paid: 0, owed: 0, net: 0 };
               const isPositive = data.net > 0, isNegative = data.net < 0;
               return (
-                <div key={m} style={{ padding: "12px 14px", borderRadius: 12, background: "#f9f9f9", border: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div key={m} style={{padding:"12px 14px",borderRadius:12,background:"#f9f9f9",border:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: 15 }}>{m}</div>
-                    <div style={{ fontSize: 11, color: "#757575", marginTop: 2 }}>Paid: {fmtAmt(data.paid)} • Owed: {fmtAmt(data.owed)}</div>
+                    <div style={{fontWeight:800,fontSize:15}}>{m}</div>
+                    <div style={{fontSize:11,color:"#757575",marginTop:2}}>Paid: {fmtAmt(data.paid)} • Owed: {fmtAmt(data.owed)}</div>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 900, fontSize: 16, color: isPositive ? GREEN : isNegative ? "#c62828" : "#888" }}>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontWeight:900,fontSize:16,color: isPositive ? GREEN : isNegative ? "#c62828" : "#888"}}>
                       {isPositive ? "+" : ""}{fmtAmt(data.net)}
                     </div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: isPositive ? GREEN : isNegative ? "#c62828" : "#888" }}>
+                    <div style={{fontSize:10,fontWeight:700,color: isPositive ? GREEN : isNegative ? "#c62828" : "#888"}}>
                       {isPositive ? "gets back" : isNegative ? "owes" : "settled"}
                     </div>
                   </div>
@@ -1244,76 +1252,76 @@ function TripsView({ db, save, logAction }) {
               );
             })}
           </div>
-          <button onClick={() => setShowBalances(false)} className="btn-pill" style={{ width: "100%", background: "#f5f5f5", color: "#666", marginTop: 20 }}>Close</button>
+          <button onClick={() => setShowBalances(false)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:20}}>Close</button>
         </Modal>
 
         <Modal open={showSettlement} onClose={() => setShowSettlement(false)} title="Settlement Plan">
-          <p style={{ fontSize: 13, color: "#666", marginBottom: 16 }}>Minimized payment transactions to clear all debts:</p>
+          <p style={{fontSize:13,color:"#666",marginBottom:16}}>Minimized payment transactions to clear all debts:</p>
           {settlementPayments.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px 20px", color: GREEN }}>
-              <div style={{ fontSize: 42, marginBottom: 8 }}>🎉</div>
-              <div style={{ fontWeight: 800, fontSize: 16 }}>All Balances Settled!</div>
-              <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>No one owes money in this trip.</div>
+            <div style={{textAlign:"center",padding:"40px 20px",color:GREEN}}>
+              <div style={{fontSize:42,marginBottom:8}}>🎉</div>
+              <div style={{fontWeight:800,fontSize:16}}>All Balances Settled!</div>
+              <div style={{fontSize:13,color:"#666",marginTop:4}}>No one owes money in this trip.</div>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {settlementPayments.map((p, idx) => (
-                <div key={idx} style={{ padding: "14px", borderRadius: 12, background: GREEN_LIGHT, border: "1px solid #c8e6c9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontWeight: 800, fontSize: 15, color: "#212121" }}>{p.from}</span>
-                    <span style={{ fontSize: 13, color: "#666" }}>owes</span>
-                    <span style={{ fontWeight: 800, fontSize: 15, color: NAVY }}>{p.to}</span>
+                <div key={idx} style={{padding:"14px",borderRadius:12,background:GREEN_LIGHT,border:"1px solid #c8e6c9",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontWeight:800,fontSize:15,color:"#212121"}}>{p.from}</span>
+                    <span style={{fontSize:13,color:"#666"}}>owes</span>
+                    <span style={{fontWeight:800,fontSize:15,color:NAVY}}>{p.to}</span>
                   </div>
-                  <div style={{ fontWeight: 900, fontSize: 17, color: GREEN }}>{fmtAmt(p.amount)}</div>
+                  <div style={{fontWeight:900,fontSize:17,color:GREEN}}>{fmtAmt(p.amount)}</div>
                 </div>
               ))}
             </div>
           )}
-          <button onClick={() => setShowSettlement(false)} className="btn-pill" style={{ width: "100%", background: "#f5f5f5", color: "#666", marginTop: 20 }}>Close</button>
+          <button onClick={() => setShowSettlement(false)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:20}}>Close</button>
         </Modal>
 
         <Modal open={showEditTrip} onClose={() => setShowEditTrip(false)} title="Edit Trip Name" center>
           <span style={lbl}>Trip Name</span>
-          <input value={editTripName} onChange={e => setEditTripName(e.target.value)} style={inp} />
+          <input value={editTripName} onChange={e => setEditTripName(e.target.value)} style={inp}/>
           <button onClick={() => {
             if (!editTripName.trim()) return;
             updateActiveTrip(t => ({ ...t, name: editTripName.trim() }));
             logAction("Trip Renamed", `Renamed trip to "${editTripName.trim()}"`);
             setShowEditTrip(false);
-          }} className="btn-pill" style={{ width: "100%", background: NAVY, color: "#fff", marginTop: 18 }}>Save Name</button>
+          }} className="btn-pill" style={{width:"100%",background:NAVY,color:"#fff",marginTop:18}}>Save Name</button>
         </Modal>
       </div>
     );
   }
 
   return (
-    <div className="view-animate" style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f7f8fa" }}>
-      <div style={{ background: NAVY, color: "#fff", paddingTop: "calc(12px + env(safe-area-inset-top, 24px))", paddingLeft: 16, paddingRight: 16, paddingBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: "0.5px" }}>TRIPS</div>
-        <button onClick={() => setShowAddTrip(true)} className="btn-pill" style={{ background: "rgba(255,255,255,0.2)", color: "#fff", fontSize: 13, padding: "8px 14px" }}>+ New Trip</button>
+    <div className="view-animate" style={{display:"flex",flexDirection:"column",height:"100%",flex:1,background:"#f7f8fa"}}>
+      <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+        <div style={{fontSize:20,fontWeight:900,letterSpacing:"0.5px"}}>TRIPS</div>
+        <button onClick={() => setShowAddTrip(true)} className="btn-pill" style={{background:"rgba(255,255,255,0.2)",color:"#fff",fontSize:13,padding:"8px 14px"}}>+ New Trip</button>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: 16, paddingBottom: 90 }}>
+      <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
         {trips.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "80px 24px", color: "#aaa" }}>
-            <div style={{ fontSize: 56, marginBottom: 16 }}>✈️</div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: "#444", marginBottom: 6 }}>No Trips Created</div>
-            <div style={{ fontSize: 13, color: "#888", maxWidth: 260, margin: "0 auto 20px" }}>
+          <div style={{textAlign:"center",padding:"80px 24px",color:"#aaa"}}>
+            <div style={{fontSize:56,marginBottom:16}}>✈️</div>
+            <div style={{fontWeight:800,fontSize:18,color:"#444",marginBottom:6}}>No Trips Created</div>
+            <div style={{fontSize:13,color:"#888",maxWidth:260,margin:"0 auto 20px"}}>
               Create a trip to manage group expenses, split bills, and calculate settlements easily.
             </div>
-            <button onClick={() => setShowAddTrip(true)} className="btn-pill" style={{ background: NAVY, color: "#fff" }}>+ Create First Trip</button>
+            <button onClick={() => setShowAddTrip(true)} className="btn-pill" style={{background:NAVY,color:"#fff"}}>+ Create First Trip</button>
           </div>
         ) : (
           trips.map(t => {
             const spent = (t.expenses || []).reduce((s, e) => s + e.amount, 0);
             return (
-              <div key={t.id} className="card" onClick={() => setActiveTripId(t.id)} style={{ cursor: "pointer" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                  <div style={{ fontWeight: 800, fontSize: 17, color: "#1a1a1a" }}>{t.name}</div>
-                  <span style={{ fontSize: 16, color: "#bbb" }}>›</span>
+              <div key={t.id} className="card" onClick={() => setActiveTripId(t.id)} style={{cursor:"pointer"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div style={{fontWeight:800,fontSize:17,color:"#1a1a1a"}}>{t.name}</div>
+                  <span style={{fontSize:16,color:"#bbb"}}>›</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
-                  <div style={{ fontSize: 12, color: "#757575" }}>{(t.members || []).length} Members • {(t.expenses || []).length} Expenses</div>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: NAVY }}>{fmtAmt(spent)}</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}>
+                  <div style={{fontSize:12,color:"#757575"}}>{(t.members || []).length} Members • {(t.expenses || []).length} Expenses</div>
+                  <div style={{fontWeight:800,fontSize:16,color:NAVY}}>{fmtAmt(spent)}</div>
                 </div>
               </div>
             );
@@ -1322,8 +1330,8 @@ function TripsView({ db, save, logAction }) {
       </div>
       <Modal open={showAddTrip} onClose={() => setShowAddTrip(false)} title="Create New Trip" center>
         <span style={lbl}>Trip Name *</span>
-        <input value={tripName} onChange={e => setTripName(e.target.value)} placeholder="e.g. Goa Trip, Manali Weekend, Office Lunch" style={inp} autoFocus />
-        <button onClick={createTrip} className="btn-pill" style={{ width: "100%", background: NAVY, color: "#fff", marginTop: 20, padding: 13 }}>Create Trip</button>
+        <input value={tripName} onChange={e => setTripName(e.target.value)} placeholder="e.g. Goa Trip, Manali Weekend, Office Lunch" style={inp} autoFocus/>
+        <button onClick={createTrip} className="btn-pill" style={{width:"100%",background:NAVY,color:"#fff",marginTop:20,padding:13}}>Create Trip</button>
       </Modal>
     </div>
   );
@@ -1339,14 +1347,19 @@ function ActivityHeatmapView({ db }) {
 
   const { activityMap, detailMap, availableYears } = useMemo(() => {
     const actMap = {}; const detMap = {}; const yearsSet = new Set([new Date().getFullYear()]);
+
     const addAct = (dateStr, type, title, detail) => {
       if (!dateStr || typeof dateStr !== "string") return;
+
+      if (!title && !detail) return;
+      if (title && title.trim() === "" && detail && detail.trim() === "") return;
+
       const d = dateStr.slice(0, 10);
       const yr = parseInt(d.split("-")[0]);
       if (!isNaN(yr)) yearsSet.add(yr);
       actMap[d] = (actMap[d] || 0) + 1;
       if (!detMap[d]) detMap[d] = [];
-      detMap[d].push({ type, title, detail });
+      detMap[d].push({ type, title: title || "System Action", detail: detail || "" });
     };
 
     (db.logs || []).forEach(l => { addAct(l.date || todayStr(), "Log", l.title, l.details); });
@@ -1366,14 +1379,14 @@ function ActivityHeatmapView({ db }) {
     (db.trips || []).forEach(t => {
       if (t.createdAt) {
         const d = new Date(t.createdAt).toISOString().split("T")[0];
-        addAct(d, "Trip", `Created Trip "${t.name}"`, `${(t.members || []).length} members`);
+        addAct(d, "Trip", `Created Trip "${t.name}"`, `${(t.members||[]).length} members`);
       }
       (t.expenses || []).forEach(e => {
         addAct(e.date || todayStr(), "Trip Expense", `${e.description} (${fmtAmt(e.amount)})`, `Paid by ${e.paidBy} in "${t.name}"`);
       });
     });
 
-    return { activityMap: actMap, detailMap: detMap, availableYears: Array.from(yearsSet).sort((a, b) => b - a) };
+    return { activityMap: actMap, detailMap: detMap, availableYears: Array.from(yearsSet).sort((a,b) => b-a) };
   }, [db]);
 
   const stats = useMemo(() => {
@@ -1388,7 +1401,7 @@ function ActivityHeatmapView({ db }) {
     if (activeDates.length > 0) {
       let tempStreak = 1; longestStreak = 1;
       for (let i = 1; i < activeDates.length; i++) {
-        const prev = new Date(activeDates[i - 1]); const curr = new Date(activeDates[i]);
+        const prev = new Date(activeDates[i-1]); const curr = new Date(activeDates[i]);
         const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
         if (diffDays === 1) { tempStreak++; } else if (diffDays > 1) { tempStreak = 1; }
         if (tempStreak > longestStreak) longestStreak = tempStreak;
@@ -1417,7 +1430,7 @@ function ActivityHeatmapView({ db }) {
       const days = [];
       for (let p = 0; p < startDayOfWeek; p++) { days.push(null); }
       for (let d = 1; d <= daysInMonth; d++) {
-        const dateStr = `${selectedYear}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const dateStr = `${selectedYear}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
         days.push({ day: d, dateStr: dateStr, count: activityMap[dateStr] || 0 });
       }
       months.push({ monthName: new Date(selectedYear, m, 1).toLocaleString('en-IN', { month: 'short' }), days });
@@ -1426,69 +1439,69 @@ function ActivityHeatmapView({ db }) {
   }, [selectedYear, activityMap]);
 
   return (
-    <div className="view-animate" style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f7f8fa" }}>
-      <div style={{ background: NAVY, color: "#fff", paddingTop: "calc(12px + env(safe-area-inset-top, 24px))", paddingLeft: 16, paddingRight: 16, paddingBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+    <div className="view-animate" style={{display:"flex",flexDirection:"column",height:"100%",flex:1,background:"#f7f8fa"}}>
+      <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: "0.5px" }}>ACTIVITY HEATMAP</div>
-          <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>Real application activity matrix</div>
+          <div style={{fontSize:20,fontWeight:900,letterSpacing:"0.5px"}}>ACTIVITY HEATMAP</div>
+          <div style={{fontSize:11,opacity:0.8,marginTop:2}}>Real application activity matrix</div>
         </div>
         <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
-          style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", borderRadius: 8, padding: "6px 10px", fontWeight: 700, fontSize: 13, outline: "none" }}>
-          {availableYears.map(y => <option key={y} value={y} style={{ color: "#333" }}>{y}</option>)}
+          style={{background:"rgba(255,255,255,0.2)",color:"#fff",border:"none",borderRadius:8,padding:"6px 10px",fontWeight:700,fontSize:13,outline:"none"}}>
+          {availableYears.map(y => <option key={y} value={y} style={{color:"#333"}}>{y}</option>)}
         </select>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: 16, paddingBottom: 90 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-          <div className="card" style={{ padding: 12, textAlign: "center", margin: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#888", textTransform: "uppercase" }}>Total Actions ({selectedYear})</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: NAVY, marginTop: 2 }}>{stats.yearTotal}</div>
+      <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+          <div className="card" style={{padding:12,textAlign:"center",margin:0}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Total Actions ({selectedYear})</div>
+            <div style={{fontSize:22,fontWeight:900,color:NAVY,marginTop:2}}>{stats.yearTotal}</div>
           </div>
-          <div className="card" style={{ padding: 12, textAlign: "center", margin: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#888", textTransform: "uppercase" }}>Active Days</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: GREEN, marginTop: 2 }}>{stats.activeDaysCount}</div>
+          <div className="card" style={{padding:12,textAlign:"center",margin:0}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Active Days</div>
+            <div style={{fontSize:22,fontWeight:900,color:GREEN,marginTop:2}}>{stats.activeDaysCount}</div>
           </div>
-          <div className="card" style={{ padding: 12, textAlign: "center", margin: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#888", textTransform: "uppercase" }}>Current Streak</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: AMBER, marginTop: 2 }}>{stats.currentStreak} days 🔥</div>
+          <div className="card" style={{padding:12,textAlign:"center",margin:0}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Current Streak</div>
+            <div style={{fontSize:22,fontWeight:900,color:AMBER,marginTop:2}}>{stats.currentStreak} days 🔥</div>
           </div>
-          <div className="card" style={{ padding: 12, textAlign: "center", margin: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#888", textTransform: "uppercase" }}>Longest Streak</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: "#6a1b9a", marginTop: 2 }}>{stats.longestStreak} days ⚡</div>
+          <div className="card" style={{padding:12,textAlign:"center",margin:0}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Longest Streak</div>
+            <div style={{fontSize:22,fontWeight:900,color:"#6a1b9a",marginTop:2}}>{stats.longestStreak} days ⚡</div>
           </div>
         </div>
 
-        <div className="card" style={{ padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#666" }}>Activity Intensity</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 10, color: "#888" }}>Less</span>
+        <div className="card" style={{padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span style={{fontSize:11,fontWeight:700,color:"#666"}}>Activity Intensity</span>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:10,color:"#888"}}>Less</span>
             {[0, 1, 3, 5, 8].map((lvl, i) => (
-              <div key={i} style={{ width: 14, height: 14, borderRadius: 3, background: getColor(lvl) }} />
+              <div key={i} style={{width:14,height:14,borderRadius:3,background:getColor(lvl)}}/>
             ))}
-            <span style={{ fontSize: 10, color: "#888" }}>More</span>
+            <span style={{fontSize:10,color:"#888"}}>More</span>
           </div>
         </div>
 
-        <div className="card" style={{ padding: 14 }}>
-          <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 12, color: "#333" }}>
+        <div className="card" style={{padding:14}}>
+          <div style={{fontWeight:800,fontSize:14,marginBottom:12,color:"#333"}}>
             {selectedYear} Activity Calendar
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 14 }}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(130px, 1fr))",gap:14}}>
             {monthsData.map((m, mIdx) => (
-              <div key={mIdx} style={{ background: "#f9f9f9", borderRadius: 10, padding: 8, border: "1px solid #eee" }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: NAVY, marginBottom: 6, textAlign: "center" }}>{m.monthName}</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center", marginBottom: 4 }}>
-                  {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-                    <span key={i} style={{ fontSize: 8, fontWeight: 700, color: "#aaa" }}>{d}</span>
+              <div key={mIdx} style={{background:"#f9f9f9",borderRadius:10,padding:8,border:"1px solid #eee"}}>
+                <div style={{fontSize:11,fontWeight:800,color:NAVY,marginBottom:6,textAlign:"center"}}>{m.monthName}</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7, 1fr)",gap:2,textAlign:"center",marginBottom:4}}>
+                  {["S","M","T","W","T","F","S"].map((d, i) => (
+                    <span key={i} style={{fontSize:8,fontWeight:700,color:"#aaa"}}>{d}</span>
                   ))}
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3 }}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7, 1fr)",gap:3}}>
                   {m.days.map((d, dIdx) => {
-                    if (!d) return <div key={dIdx} style={{ height: 13 }} />;
+                    if (!d) return <div key={dIdx} style={{height:13}}/>;
                     return (
                       <div key={dIdx} onClick={() => d.count > 0 && setSelectedDate(d.dateStr)}
                         className="heatmap-day" title={`${d.dateStr}: ${d.count} activities`}
-                        style={{ height: 13, background: getColor(d.count), cursor: d.count > 0 ? "pointer" : "default" }} />
+                        style={{ height:13, background: getColor(d.count), cursor: d.count > 0 ? "pointer" : "default" }}/>
                     );
                   })}
                 </div>
@@ -1501,21 +1514,21 @@ function ActivityHeatmapView({ db }) {
       <Modal open={!!selectedDate} onClose={() => setSelectedDate(null)} title={`Activity on ${fmtDate(selectedDate)}`}>
         {selectedDate && (
           <div>
-            <div style={{ fontSize: 12, color: "#757575", marginBottom: 12, fontWeight: 600 }}>
+            <div style={{fontSize:12,color:"#757575",marginBottom:12,fontWeight:600}}>
               {detailMap[selectedDate] ? detailMap[selectedDate].length : 0} total actions recorded
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 300, overflowY: "auto" }}>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {(detailMap[selectedDate] || []).map((item, idx) => (
-                <div key={idx} style={{ padding: "10px 12px", borderRadius: 10, background: "#f5f5f5", borderLeft: `4px solid ${NAVY}` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-                    <span style={{ fontWeight: 800, fontSize: 13, color: "#1a1a1a" }}>{item.title}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: NAVY_LIGHT, color: NAVY, padding: "2px 6px", borderRadius: 4 }}>{item.type}</span>
+                <div key={idx} style={{padding:"10px 12px",borderRadius:10,background:"#f5f5f5",borderLeft:`4px solid ${NAVY}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+                    <span style={{fontWeight:800,fontSize:13,color:"#1a1a1a"}}>{item.title}</span>
+                    <span style={{fontSize:10,fontWeight:700,background:NAVY_LIGHT,color:NAVY,padding:"2px 6px",borderRadius:4}}>{item.type}</span>
                   </div>
-                  <div style={{ fontSize: 12, color: "#666" }}>{item.detail}</div>
+                  {item.detail && <div style={{fontSize:12,color:"#666"}}>{item.detail}</div>}
                 </div>
               ))}
             </div>
-            <button onClick={() => setSelectedDate(null)} className="btn-pill" style={{ width: "100%", background: "#f5f5f5", color: "#666", marginTop: 16 }}>Close</button>
+            <button onClick={() => setSelectedDate(null)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:16}}>Close</button>
           </div>
         )}
       </Modal>
@@ -1529,6 +1542,12 @@ function ActivityHeatmapView({ db }) {
 
 function SettingsView({ db, save, logAction }) {
   const [restoreErr, setRestoreErr] = useState("");
+
+  // Clear Data State
+  const [showClear, setShowClear] = useState(false);
+  const [clearCategory, setClearCategory] = useState("logs");
+  const [clearBeforeDate, setClearBeforeDate] = useState("");
+
   const settings = db.settings || { appLockEnabled: false };
 
   const toggleAppLock = () => {
@@ -1567,59 +1586,122 @@ function SettingsView({ db, save, logAction }) {
     reader.readAsText(file);
   };
 
+  // Bulk Delete Function
+  const handleClearData = () => {
+    let nextDb = { ...db };
+
+    const filterByDate = (items, dateField) => {
+      if(!clearBeforeDate) return [];
+      return items.filter(i => new Date(i[dateField]) >= new Date(clearBeforeDate));
+    };
+
+    if (clearCategory === "logs") {
+      if(!confirm("Are you sure you want to clear Activity Logs?")) return;
+      nextDb.logs = filterByDate(db.logs || [], "date");
+      logAction("Data Cleared", "Cleared Activity Logs");
+    }
+    else if (clearCategory === "trips") {
+      if(!confirm("Are you sure you want to clear Trips data?")) return;
+      if (clearBeforeDate) {
+        nextDb.trips = db.trips.filter(t => new Date(t.createdAt) >= new Date(clearBeforeDate));
+      } else {
+        nextDb.trips = [];
+      }
+      logAction("Data Cleared", "Cleared Trips");
+    }
+    else if (clearCategory === "all") {
+      if(!confirm("WARNING: This will factory reset the app and delete ALL data permanently. Continue?")) return;
+      nextDb = { ...INIT, settings: db.settings };
+    }
+
+    save(nextDb);
+    setShowClear(false);
+  };
+
   return (
-    <div className="view-animate" style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f7f8fa" }}>
-      <div style={{ background: NAVY, color: "#fff", paddingTop: "calc(12px + env(safe-area-inset-top, 24px))", paddingLeft: 16, paddingRight: 16, paddingBottom: 16, flexShrink: 0 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: "0.5px" }}>SETTINGS</div>
-        <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>Security & Data Backup</div>
+    <div className="view-animate" style={{display:"flex",flexDirection:"column",height:"100%",flex:1,background:"#f7f8fa"}}>
+      <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:16,flexShrink:0}}>
+        <div style={{fontSize:20,fontWeight:900,letterSpacing:"0.5px"}}>SETTINGS</div>
+        <div style={{fontSize:11,opacity:0.8,marginTop:2}}>Security & Data Backup</div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: 16, paddingBottom: 90 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#888", letterSpacing: "0.06em", marginBottom: 8 }}>App Security</div>
-        <div className="card" style={{ padding: "14px 16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8}}>App Security</div>
+        <div className="card" style={{padding:"14px 16px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>Native App Lock</div>
-              <div style={{ fontSize: 12, color: "#757575" }}>Require Android Biometrics / Device PIN to open</div>
+              <div style={{fontWeight:700,fontSize:15}}>Native App Lock</div>
+              <div style={{fontSize:12,color:"#757575"}}>Require Android Biometrics / Device PIN to open</div>
             </div>
-            <div className={`toggle-switch ${settings.appLockEnabled ? "on" : ""}`} onClick={toggleAppLock} />
+            <div className={`toggle-switch ${settings.appLockEnabled ? "on" : ""}`} onClick={toggleAppLock}/>
           </div>
         </div>
 
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#888", letterSpacing: "0.06em", marginBottom: 8, marginTop: 16 }}>Data Backup & Restore</div>
-        <div className="card" style={{ padding: "16px" }}>
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Export Backup File</div>
-            <div style={{ fontSize: 12, color: "#757575", marginBottom: 10 }}>Save all customers, suppliers, trips, and transactions to a local file</div>
-            <button onClick={exportBackup} className="btn-pill" style={{ background: NAVY, color: "#fff", width: "100%", fontSize: 14 }}>📥 Download Backup</button>
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8,marginTop:16}}>Data Backup & Restore</div>
+        <div className="card" style={{padding:"16px"}}>
+          <div style={{marginBottom:14}}>
+            <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>Export Backup File</div>
+            <div style={{fontSize:12,color:"#757575",marginBottom:10}}>Save all customers, suppliers, trips, and transactions to a local file</div>
+            <button onClick={exportBackup} className="btn-pill" style={{background:NAVY,color:"#fff",width:"100%",fontSize:14}}>📥 Download Backup</button>
           </div>
-          <div style={{ borderTop: "1px solid #eee", paddingTop: 14 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Restore Backup File</div>
-            <div style={{ fontSize: 12, color: "#757575", marginBottom: 10 }}>Load previously saved application backup</div>
-            <label className="btn-pill" style={{ background: "#f5f5f5", color: "#333", border: "1.5px solid #ccc", width: "100%", fontSize: 14, cursor: "pointer", textAlign: "center", display: "block" }}>
+          <div style={{borderTop:"1px solid #eee",paddingTop:14}}>
+            <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>Restore Backup File</div>
+            <div style={{fontSize:12,color:"#757575",marginBottom:10}}>Load previously saved application backup</div>
+            <label className="btn-pill" style={{background:"#f5f5f5",color:"#333",border:"1.5px solid #ccc",width:"100%",fontSize:14,cursor:"pointer",textAlign:"center",display:"block"}}>
               📤 Select & Restore File
-              <input type="file" accept=".json" onChange={importBackup} style={{ display: "none" }} />
+              <input type="file" accept=".json" onChange={importBackup} style={{display:"none"}}/>
             </label>
-            {restoreErr && <div style={{ fontSize: 11, color: "#c62828", marginTop: 8, fontWeight: 600 }}>{restoreErr}</div>}
+            {restoreErr && <div style={{fontSize:11,color:"#c62828",marginTop:8,fontWeight:600}}>{restoreErr}</div>}
           </div>
         </div>
 
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#888", letterSpacing: "0.06em", marginBottom: 8, marginTop: 16 }}>Storage Summary</div>
-        <div className="card" style={{ padding: "14px 16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}>
-            <span style={{ color: "#666" }}>Customers Count</span><span style={{ fontWeight: 700 }}>{(db.customers || []).length}</span>
+        {/* Data Management Section */}
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8,marginTop:16}}>Data Management</div>
+        <div className="card" style={{padding:"16px"}}>
+          <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>Bulk Delete / Clear Data</div>
+          <div style={{fontSize:12,color:"#757575",marginBottom:10}}>Delete specific category logs, trips, or reset the app entirely.</div>
+          <button onClick={() => setShowClear(true)} className="btn-pill" style={{background:"#ffebee",color:"#c62828",border:"1.5px solid #ffcdd2",width:"100%",fontSize:14}}>
+            🗑️ Clear Data Options
+          </button>
+        </div>
+
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8,marginTop:16}}>Storage Summary</div>
+        <div className="card" style={{padding:"14px 16px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:13}}>
+            <span style={{color:"#666"}}>Customers Count</span><span style={{fontWeight:700}}>{(db.customers||[]).length}</span>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}>
-            <span style={{ color: "#666" }}>Suppliers Count</span><span style={{ fontWeight: 700 }}>{(db.suppliers || []).length}</span>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:13}}>
+            <span style={{color:"#666"}}>Suppliers Count</span><span style={{fontWeight:700}}>{(db.suppliers||[]).length}</span>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}>
-            <span style={{ color: "#666" }}>Trips Count</span><span style={{ fontWeight: 700 }}>{(db.trips || []).length}</span>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:13}}>
+            <span style={{color:"#666"}}>Trips Count</span><span style={{fontWeight:700}}>{(db.trips||[]).length}</span>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-            <span style={{ color: "#666" }}>Persistence Layer</span><span style={{ fontWeight: 700, color: NAVY }}>AndroidBridge + Encrypted BSON</span>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
+            <span style={{color:"#666"}}>Persistence Layer</span><span style={{fontWeight:700,color:NAVY}}>AndroidBridge + Encrypted BSON</span>
           </div>
         </div>
       </div>
+
+      <Modal open={showClear} onClose={() => setShowClear(false)} title="Clear Data Options">
+        <span style={lbl}>What would you like to delete?</span>
+        <select value={clearCategory} onChange={e => setClearCategory(e.target.value)} style={inp}>
+          <option value="logs">Activity Logs (Heatmap Data)</option>
+          <option value="trips">Trips & Expenses</option>
+          <option value="all">Factory Reset (Wipe All App Data)</option>
+        </select>
+
+        {clearCategory !== "all" && (
+          <>
+            <span style={lbl}>Delete entries older than (Optional)</span>
+            <div style={{fontSize:11, color:"#757575", marginTop:2}}>Leave blank to delete ALL items in this category.</div>
+            <input type="date" value={clearBeforeDate} onChange={e => setClearBeforeDate(e.target.value)} style={inp}/>
+          </>
+        )}
+
+        <button onClick={handleClearData} className="btn-pill" style={{background:"#c62828",color:"#fff",width:"100%",marginTop:20,padding:14}}>
+          Permanently Delete Data
+        </button>
+      </Modal>
     </div>
   );
 }
@@ -1651,7 +1733,7 @@ function AppLockOverlay({ settings, onUnlock }) {
       <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Red Orbit</div>
       <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 24 }}>App is Locked</div>
       <button onClick={triggerAuth} className="btn-pill" style={{ background: "rgba(255,255,255,0.2)", color: "#fff", padding: "12px 24px", fontSize: 15 }}>
-         Unlock with Biometrics / PIN
+        👆 Unlock with Biometrics / PIN
       </button>
     </div>
   );
@@ -1660,6 +1742,25 @@ function AppLockOverlay({ settings, onUnlock }) {
 // ══════════════════════════════════════════════════════════════
 // 6. MAIN APPLICATION ROOT CONTAINER
 // ══════════════════════════════════════════════════════════════
+
+function AppLogo() {
+  const [imgError, setImgError] = useState(false);
+  if (imgError) {
+    return (
+      <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900}}>
+        🔥
+      </div>
+    );
+  }
+  return (
+    <img
+      src="logo.png"
+      alt="Logo"
+      onError={() => setImgError(true)}
+      style={{width: 34, height: 34, borderRadius: 10, objectFit: "cover", background:"rgba(255,255,255,0.2)"}}
+    />
+  );
+}
 
 function App() {
   const [db, setDb] = useState(loadFromAllSources);
@@ -1690,38 +1791,38 @@ function App() {
   }
 
   return (
-    <div style={{ maxWidth: 480, margin: "0 auto", height: "100vh", background: "#f7f8fa", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+    <div style={{maxWidth:480,margin:"0 auto",height:"100dvh",minHeight:"100vh",background:"#f7f8fa",position:"relative",overflow:"hidden",display:"flex",flexDirection:"column"}}>
       {!activeEntityId && (
-        <div style={{ background: NAVY, color: "#fff", paddingTop: "calc(12px + env(safe-area-inset-top, 24px))", paddingLeft: 16, paddingRight: 16, paddingBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900 }}>🔥</div>
-            <div style={{ fontWeight: 900, fontSize: 18, letterSpacing: "0.5px" }}>Red Orbit</div>
+        <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <AppLogo />
+            <div style={{fontWeight:900,fontSize:18,letterSpacing:"0.5px"}}>Red Orbit</div>
           </div>
-          <div style={{ fontSize: 12, fontWeight: 700, background: NAVY_LIGHT, color: NAVY, padding: "4px 10px", borderRadius: 20 }}>
+          <div style={{fontSize:12,fontWeight:700,background:NAVY_LIGHT,color:NAVY,padding:"4px 10px",borderRadius:20}}>
             My Accounts
           </div>
         </div>
       )}
 
-      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+      <div style={{flex:1,position:"relative",overflow:"hidden",display:"flex",flexDirection:"column"}}>
         {activeEntityId ? (
           <CustomerSupplierLedger
             db={db} save={save} entityId={activeEntityId} listKey={tab === "suppliers" ? "suppliers" : "customers"}
             accentColor={tab === "suppliers" ? "#1a3a6b" : NAVY} accentLight={tab === "suppliers" ? "#e8eaf6" : NAVY_LIGHT}
-            onBack={() => setActiveEntityId(null)} logAction={logAction} />
+            onBack={() => setActiveEntityId(null)} logAction={logAction}/>
         ) : (
           <>
-            {tab === "customers" && <EntityList db={db} save={save} tab="customers" accentColor={NAVY} accentLight={NAVY_LIGHT} onOpen={setActiveEntityId} logAction={logAction} />}
-            {tab === "suppliers" && <EntityList db={db} save={save} tab="suppliers" accentColor="#1a3a6b" accentLight="#e8eaf6" onOpen={setActiveEntityId} logAction={logAction} />}
-            {tab === "trips" && <TripsView db={db} save={save} logAction={logAction} />}
-            {tab === "heatmap" && <ActivityHeatmapView db={db} />}
-            {tab === "settings" && <SettingsView db={db} save={save} logAction={logAction} />}
+            {tab === "customers" && <EntityList db={db} save={save} tab="customers" accentColor={NAVY} accentLight={NAVY_LIGHT} onOpen={setActiveEntityId} logAction={logAction}/>}
+            {tab === "suppliers" && <EntityList db={db} save={save} tab="suppliers" accentColor="#1a3a6b" accentLight="#e8eaf6" onOpen={setActiveEntityId} logAction={logAction}/>}
+            {tab === "trips" && <TripsView db={db} save={save} logAction={logAction}/>}
+            {tab === "heatmap" && <ActivityHeatmapView db={db}/>}
+            {tab === "settings" && <SettingsView db={db} save={save} logAction={logAction}/>}
           </>
         )}
       </div>
 
       {!activeEntityId && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 480, margin: "0 auto", background: "#ffffff", borderTop: "1px solid #e5e7eb", display: "flex", alignItems: "center", zIndex: 100, paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))" }}>
+        <div style={{ position:"fixed",bottom:0,left:0,right:0,maxWidth:480,margin:"0 auto", background:"#ffffff",borderTop:"1px solid #e5e7eb", display:"flex",alignItems:"center",zIndex:100, paddingBottom:"max(6px, env(safe-area-inset-bottom, 6px))" }}>
           {[
             { id: "customers", label: "Customers", icon: "👥" },
             { id: "suppliers", label: "Suppliers", icon: "🏭" },
