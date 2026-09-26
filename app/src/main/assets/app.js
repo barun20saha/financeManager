@@ -124,11 +124,11 @@ function Modal({ open, onClose, title, children, center = false }) {
       <div onClick={e => e.target === e.currentTarget && onClose()}
         style={{animation:"fadeIn 0.2s forwards", position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div onClick={e => e.stopPropagation()}
-          style={{animation:"slideUpFade 0.3s forwards", background:"#fff",borderRadius:18,width:"100%",maxWidth:400,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 50px rgba(0,0,0,0.3)"}}>
+          style={{animation:"slideUpFade 0.3s forwards", background:"#fff",borderRadius:18,width:"100%",maxWidth:400,maxHeight:"80dvh",display:"flex",flexDirection:"column",boxShadow:"0 20px 50px rgba(0,0,0,0.3)"}}>
           <div style={{padding:"22px 20px 10px", flexShrink:0}}>
             {title && <h3 style={{fontSize:17,fontWeight:700,color:"#1a1a1a",margin:0}}>{title}</h3>}
           </div>
-          <div style={{padding:"10px 20px 22px", overflowY:"auto"}}>
+          <div style={{padding:"10px 20px 40px", overflowY:"auto", flex:1, minHeight:0}}>
             {children}
           </div>
         </div>
@@ -139,12 +139,12 @@ function Modal({ open, onClose, title, children, center = false }) {
     <div onClick={e => e.target === e.currentTarget && onClose()}
       style={{animation:"fadeIn 0.2s forwards", position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:9999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
       <div onClick={e => e.stopPropagation()}
-        style={{animation:"modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards", background:"#fff",borderRadius:"22px 22px 0 0",width:"100%",maxWidth:480,maxHeight:"85vh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 32px rgba(0,0,0,0.2)"}}>
+        style={{animation:"modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards", background:"#fff",borderRadius:"22px 22px 0 0",width:"100%",maxWidth:480,maxHeight:"80dvh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 32px rgba(0,0,0,0.2)"}}>
         <div style={{padding:"20px 20px 10px", flexShrink:0}}>
           <div style={{width:40,height:4,background:"#e0e0e0",borderRadius:2,margin:"0 auto 16px"}}/>
           {title && <h3 style={{fontSize:18,fontWeight:700,color:"#1a1a1a",margin:0}}>{title}</h3>}
         </div>
-        <div style={{padding:"10px 20px 30px", overflowY:"auto"}}>
+        <div style={{padding:"10px 20px 40px", overflowY:"auto", flex:1, minHeight:0}}>
           {children}
         </div>
       </div>
@@ -480,7 +480,7 @@ function CustomerSupplierLedger({ db, save, entityId, listKey, accentColor, acce
         </div>
       </div>
 
-      <div style={{flex:1,overflowY:"auto",paddingTop:8,paddingBottom:90}}>
+      <div style={{flex:1,overflowY:"auto",paddingTop:8,paddingBottom:120}}>
         {filterOn ? (
           relevantPayments.length === 0 ? (
             <div style={{textAlign:"center",padding:"64px 24px",color:"#bbb"}}>
@@ -1300,7 +1300,7 @@ function TripsView({ db, save, logAction }) {
         <div style={{fontSize:20,fontWeight:900,letterSpacing:"0.5px"}}>TRIPS</div>
         <button onClick={() => setShowAddTrip(true)} className="btn-pill" style={{background:"rgba(255,255,255,0.2)",color:"#fff",fontSize:13,padding:"8px 14px"}}>+ New Trip</button>
       </div>
-      <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
+      <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:120}}>
         {trips.length === 0 ? (
           <div style={{textAlign:"center",padding:"80px 24px",color:"#aaa"}}>
             <div style={{fontSize:56,marginBottom:16}}>✈️</div>
@@ -1451,7 +1451,7 @@ function ActivityHeatmapView({ db }) {
         </select>
       </div>
 
-      <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
+      <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:120}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
           <div className="card" style={{padding:12,textAlign:"center",margin:0}}>
             <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Total Actions ({selectedYear})</div>
@@ -1520,11 +1520,11 @@ function ActivityHeatmapView({ db }) {
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {(detailMap[selectedDate] || []).map((item, idx) => (
                 <div key={idx} style={{padding:"10px 12px",borderRadius:10,background:"#f5f5f5",borderLeft:`4px solid ${NAVY}`}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
-                    <span style={{fontWeight:800,fontSize:13,color:"#1a1a1a"}}>{item.title}</span>
-                    <span style={{fontSize:10,fontWeight:700,background:NAVY_LIGHT,color:NAVY,padding:"2px 6px",borderRadius:4}}>{item.type}</span>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2,gap:8}}>
+                    <span style={{fontWeight:800,fontSize:13,color:"#1a1a1a",wordBreak:"break-word",whiteSpace:"pre-wrap"}}>{item.title}</span>
+                    <span style={{fontSize:10,fontWeight:700,background:NAVY_LIGHT,color:NAVY,padding:"2px 6px",borderRadius:4,flexShrink:0}}>{item.type}</span>
                   </div>
-                  {item.detail && <div style={{fontSize:12,color:"#666"}}>{item.detail}</div>}
+                  {item.detail && <div style={{fontSize:12,color:"#666",wordBreak:"break-word",whiteSpace:"pre-wrap",marginTop:2}}>{item.detail}</div>}
                 </div>
               ))}
             </div>
@@ -1625,7 +1625,7 @@ function SettingsView({ db, save, logAction }) {
         <div style={{fontSize:11,opacity:0.8,marginTop:2}}>Security & Data Backup</div>
       </div>
 
-      <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:90}}>
+      <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:120}}>
         <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8}}>App Security</div>
         <div className="card" style={{padding:"14px 16px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1747,7 +1747,7 @@ function AppLogo() {
   const [imgError, setImgError] = useState(false);
   if (imgError) {
     return (
-      <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900}}>
+      <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,flexShrink:0}}>
         🔥
       </div>
     );
@@ -1755,9 +1755,9 @@ function AppLogo() {
   return (
     <img
       src="logo.png"
-      alt="Logo"
+      alt="Red Orbit Logo"
       onError={() => setImgError(true)}
-      style={{width: 34, height: 34, borderRadius: 10, objectFit: "cover", background:"rgba(255,255,255,0.2)"}}
+      style={{width: 34, height: 34, borderRadius: 10, objectFit: "cover", background:"rgba(255,255,255,0.2)", flexShrink:0, display:"block"}}
     />
   );
 }
