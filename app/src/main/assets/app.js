@@ -118,17 +118,24 @@ const lbl = {
 
 // ── MODAL COMPONENT ─────────────────────
 function Modal({ open, onClose, title, children, center = false }) {
+  useEffect(() => {
+    if (open) {
+      window.history.pushState({ modal: true }, "");
+      const handlePop = () => onClose();
+      window.addEventListener("popstate", handlePop);
+      return () => window.removeEventListener("popstate", handlePop);
+    }
+  }, [open, onClose]);
+
   if (!open) return null;
   if (center) {
     return (
-      <div onClick={e => e.target === e.currentTarget && onClose()}
-        style={{animation:"fadeIn 0.2s forwards", position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-        <div onClick={e => e.stopPropagation()}
-          style={{animation:"slideUpFade 0.3s forwards", background:"#fff",borderRadius:18,width:"100%",maxWidth:400,maxHeight:"80dvh",display:"flex",flexDirection:"column",boxShadow:"0 20px 50px rgba(0,0,0,0.3)"}}>
-          <div style={{padding:"22px 20px 10px", flexShrink:0}}>
-            {title && <h3 style={{fontSize:17,fontWeight:700,color:"#1a1a1a",margin:0}}>{title}</h3>}
+      <div onClick={e => { if(e.target === e.currentTarget) { window.history.back(); onClose(); } }} className="modal-overlay">
+        <div onClick={e => e.stopPropagation()} className="modal-content modal-center">
+          <div className="modal-header">
+            {title && <h3>{title}</h3>}
           </div>
-          <div style={{padding:"10px 20px 40px", overflowY:"auto", flex:1, minHeight:0}}>
+          <div className="modal-body">
             {children}
           </div>
         </div>
@@ -136,15 +143,13 @@ function Modal({ open, onClose, title, children, center = false }) {
     );
   }
   return (
-    <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{animation:"fadeIn 0.2s forwards", position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:9999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-      <div onClick={e => e.stopPropagation()}
-        style={{animation:"modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards", background:"#fff",borderRadius:"22px 22px 0 0",width:"100%",maxWidth:480,maxHeight:"80dvh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 32px rgba(0,0,0,0.2)"}}>
-        <div style={{padding:"20px 20px 10px", flexShrink:0}}>
-          <div style={{width:40,height:4,background:"#e0e0e0",borderRadius:2,margin:"0 auto 16px"}}/>
-          {title && <h3 style={{fontSize:18,fontWeight:700,color:"#1a1a1a",margin:0}}>{title}</h3>}
+    <div onClick={e => { if(e.target === e.currentTarget) { window.history.back(); onClose(); } }} className="modal-overlay modal-bottom-overlay">
+      <div onClick={e => e.stopPropagation()} className="modal-content modal-bottom">
+        <div className="modal-header">
+          <div className="modal-drag-handle"/>
+          {title && <h3>{title}</h3>}
         </div>
-        <div style={{padding:"10px 20px 40px", overflowY:"auto", flex:1, minHeight:0}}>
+        <div className="modal-body">
           {children}
         </div>
       </div>
@@ -745,6 +750,15 @@ function TripsView({ db, save, logAction }) {
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [tripName, setTripName] = useState("");
 
+  useEffect(() => {
+    if (activeTripId) {
+      window.history.pushState({ trip: true }, "");
+      const handlePop = () => setActiveTripId(null);
+      window.addEventListener("popstate", handlePop);
+      return () => window.removeEventListener("popstate", handlePop);
+    }
+  }, [activeTripId]);
+
   const [showMenu, setShowMenu] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -768,6 +782,7 @@ function TripsView({ db, save, logAction }) {
 
   const [editingMember, setEditingMember] = useState(null);
   const [editMemberName, setEditMemberName] = useState("");
+  const [recordSettlementData, setRecordSettlementData] = useState(null);
 
   const trips = db.trips || [];
   const activeTrip = trips.find(t => t.id === activeTripId);
@@ -916,6 +931,17 @@ function TripsView({ db, save, logAction }) {
     setSelectedExpense(null);
   };
 
+  const saveTripSettlement = () => {
+    if (!recordSettlementData) return;
+    const { from, to, amount } = recordSettlementData;
+    const amt = parseFloat(amount);
+    if (!amt || amt <= 0) { alert("Enter valid amount"); return; }
+    const newSettle = { id: uid(), from, to, amount: amt, date: todayStr(), createdAt: Date.now() };
+    updateActiveTrip(t => ({ ...t, settlements: [newSettle, ...(t.settlements || [])] }));
+    logAction("Trip Settlement", `${from} paid ${fmtAmt(amt)} to ${to} in ${activeTrip.name}`);
+    setRecordSettlementData(null);
+  };
+
   const tripBalances = useMemo(() => {
     if (!activeTrip) return {};
     const balances = {};
@@ -928,6 +954,12 @@ function TripsView({ db, save, logAction }) {
         if (!balances[member]) balances[member] = { paid: 0, owed: 0, net: 0 };
         balances[member].owed += share;
       });
+    });
+    (activeTrip.settlements || []).forEach(settle => {
+      if (!balances[settle.from]) balances[settle.from] = { paid: 0, owed: 0, net: 0 };
+      if (!balances[settle.to]) balances[settle.to] = { paid: 0, owed: 0, net: 0 };
+      balances[settle.from].paid += settle.amount;
+      balances[settle.to].owed += settle.amount;
     });
     Object.keys(balances).forEach(m => { balances[m].net = Math.round((balances[m].paid - balances[m].owed) * 100) / 100; });
     return balances;
@@ -964,7 +996,7 @@ function TripsView({ db, save, logAction }) {
     return (
       <div className="view-animate" style={{display:"flex",flexDirection:"column",height:"100%",flex:1,background:"#f7f8fa"}}>
         <div style={{background:NAVY,color:"#fff",paddingTop:"calc(12px + env(safe-area-inset-top, 24px))",paddingLeft:16,paddingRight:16,paddingBottom:14,display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
-          <div onClick={() => setActiveTripId(null)} style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>←</div>
+          <div onClick={() => { window.history.back(); setActiveTripId(null); }} style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>←</div>
           <div style={{flex:1,fontWeight:800,fontSize:18,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{activeTrip.name}</div>
           <div onClick={() => setShowMenu(true)}
             style={{cursor:"pointer",width:36,height:36,borderRadius:10,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:900,flexShrink:0}}>⋮</div>
@@ -1255,29 +1287,78 @@ function TripsView({ db, save, logAction }) {
           <button onClick={() => setShowBalances(false)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:20}}>Close</button>
         </Modal>
 
-        <Modal open={showSettlement} onClose={() => setShowSettlement(false)} title="Settlement Plan">
-          <p style={{fontSize:13,color:"#666",marginBottom:16}}>Minimized payment transactions to clear all debts:</p>
+        <Modal open={showSettlement} onClose={() => setShowSettlement(false)} title="Settlements">
+          <div style={{fontWeight:800,fontSize:15,marginBottom:10,color:"#333"}}>Suggested Payments</div>
+          <p style={{fontSize:13,color:"#666",marginBottom:16}}>Minimized transactions to clear all debts:</p>
           {settlementPayments.length === 0 ? (
-            <div style={{textAlign:"center",padding:"40px 20px",color:GREEN}}>
+            <div style={{textAlign:"center",padding:"20px",color:GREEN}}>
               <div style={{fontSize:42,marginBottom:8}}>🎉</div>
-              <div style={{fontWeight:800,fontSize:16}}>All Balances Settled!</div>
-              <div style={{fontSize:13,color:"#666",marginTop:4}}>No one owes money in this trip.</div>
+              <div style={{fontWeight:800,fontSize:16}}>All Settled!</div>
             </div>
           ) : (
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
               {settlementPayments.map((p, idx) => (
-                <div key={idx} style={{padding:"14px",borderRadius:12,background:GREEN_LIGHT,border:"1px solid #c8e6c9",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <span style={{fontWeight:800,fontSize:15,color:"#212121"}}>{p.from}</span>
-                    <span style={{fontSize:13,color:"#666"}}>owes</span>
-                    <span style={{fontWeight:800,fontSize:15,color:NAVY}}>{p.to}</span>
+                <div key={idx} style={{padding:"14px",borderRadius:12,background:GREEN_LIGHT,border:"1px solid #c8e6c9",display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                      <span style={{fontWeight:800,fontSize:15,color:"#212121"}}>{p.from}</span>
+                      <span style={{fontSize:12,color:"#666"}}>owes</span>
+                      <span style={{fontWeight:800,fontSize:15,color:NAVY}}>{p.to}</span>
+                    </div>
+                    <div style={{fontWeight:900,fontSize:17,color:GREEN}}>{fmtAmt(p.amount)}</div>
                   </div>
-                  <div style={{fontWeight:900,fontSize:17,color:GREEN}}>{fmtAmt(p.amount)}</div>
+                  <button onClick={() => setRecordSettlementData({ from: p.from, to: p.to, maxAmount: p.amount, amount: String(p.amount), type: "full" })} className="btn-pill" style={{background:GREEN,color:"#fff",fontSize:12,padding:"8px 12px"}}>Record</button>
                 </div>
               ))}
             </div>
           )}
+          
+          {(activeTrip.settlements && activeTrip.settlements.length > 0) && (
+            <>
+              <div style={{fontWeight:800,fontSize:15,marginBottom:10,color:"#333"}}>Recorded Payments</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {activeTrip.settlements.map((s, idx) => (
+                  <div key={s.id || idx} style={{padding:"12px",borderRadius:10,background:"#f9f9f9",border:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <div style={{fontSize:13,color:"#555"}}><b style={{color:"#111"}}>{s.from}</b> paid <b style={{color:"#111"}}>{s.to}</b></div>
+                      <div style={{fontSize:11,color:"#999",marginTop:2}}>{fmtDate(s.date)}</div>
+                    </div>
+                    <div style={{fontWeight:800,fontSize:15,color:GREEN}}>{fmtAmt(s.amount)}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
           <button onClick={() => setShowSettlement(false)} className="btn-pill" style={{width:"100%",background:"#f5f5f5",color:"#666",marginTop:20}}>Close</button>
+        </Modal>
+
+        <Modal open={!!recordSettlementData} onClose={() => setRecordSettlementData(null)} title="Record Payment" center>
+          {recordSettlementData && (() => {
+            const { from, to, maxAmount, type, amount } = recordSettlementData;
+            return (
+              <>
+                <div style={{display:"flex",alignItems:"center",gap:8,background:GREEN_LIGHT,padding:"12px",borderRadius:10,marginBottom:16}}>
+                  <span style={{fontWeight:800,color:NAVY}}>{from}</span>
+                  <span style={{fontSize:12,color:"#666"}}>paying</span>
+                  <span style={{fontWeight:800,color:NAVY}}>{to}</span>
+                </div>
+                <span style={{display:"block",fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase",marginBottom:8}}>Payment Type</span>
+                <div style={{display:"flex",gap:6,marginBottom:16}}>
+                  {[["full", "Full Settle"], ["partial", "Partial"], ["custom", "Custom"]].map(([val, label]) => (
+                    <button key={val} onClick={() => {
+                       let newAmt = amount;
+                       if (val === "full") newAmt = String(maxAmount);
+                       else if (val === "partial") newAmt = String(Math.round(maxAmount / 2 * 100)/100);
+                       setRecordSettlementData({ ...recordSettlementData, type: val, amount: newAmt });
+                    }} className="btn-pill" style={{flex:1,padding:"8px",fontSize:12,background:type===val?NAVY:"#f5f5f5",color:type===val?"#fff":"#555"}}>{label}</button>
+                  ))}
+                </div>
+                <span style={{display:"block",fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase",marginBottom:6}}>Amount (₹)</span>
+                <input type="number" value={amount} onChange={e => setRecordSettlementData({...recordSettlementData, type: "custom", amount: e.target.value})} style={{width:"100%",padding:"12px 14px",fontSize:18,fontWeight:800,borderRadius:10,border:"1.5px solid #eee",outline:"none",marginBottom:20}} autoFocus/>
+                <button onClick={saveTripSettlement} className="btn-pill" style={{width:"100%",background:GREEN,color:"#fff",padding:14,fontSize:15}}>Save Payment</button>
+              </>
+            );
+          })()}
         </Modal>
 
         <Modal open={showEditTrip} onClose={() => setShowEditTrip(false)} title="Edit Trip Name" center>
@@ -1543,10 +1624,14 @@ function ActivityHeatmapView({ db }) {
 function SettingsView({ db, save, logAction }) {
   const [restoreErr, setRestoreErr] = useState("");
 
-  // Clear Data State
   const [showClear, setShowClear] = useState(false);
-  const [clearCategory, setClearCategory] = useState("logs");
+  const [clearCategory, setClearCategory] = useState("customers");
   const [clearBeforeDate, setClearBeforeDate] = useState("");
+  const [factoryConfirmStep, setFactoryConfirmStep] = useState(0);
+
+  const [showBackup, setShowBackup] = useState(false);
+  const [backupOpts, setBackupOpts] = useState({ custSupp: true, trips: true, logs: true });
+  const [backupDate, setBackupDate] = useState("");
 
   const settings = db.settings || { appLockEnabled: false };
 
@@ -1556,8 +1641,40 @@ function SettingsView({ db, save, logAction }) {
     logAction("Security", `${nextState ? "Enabled" : "Disabled"} Native Security Lock`);
   };
 
-  const exportBackup = () => {
-    const jsonStr = JSON.stringify(db, null, 2);
+  const handleExportBackup = () => {
+    const backupDb = { settings: db.settings };
+    const limit = backupDate ? new Date(backupDate) : null;
+    
+    if (backupOpts.custSupp) {
+      backupDb.customers = db.customers;
+      backupDb.suppliers = db.suppliers;
+      if (limit) {
+        backupDb.transactions = {};
+        Object.entries(db.transactions || {}).forEach(([k, txs]) => {
+          backupDb.transactions[k] = txs.filter(t => new Date(t.date || t.createdAt) <= limit);
+        });
+      } else {
+        backupDb.transactions = db.transactions;
+      }
+    }
+    
+    if (backupOpts.trips) {
+      if (limit) {
+        backupDb.trips = (db.trips || []).filter(t => new Date(t.createdAt) <= limit);
+      } else {
+        backupDb.trips = db.trips;
+      }
+    }
+    
+    if (backupOpts.logs) {
+      if (limit) {
+        backupDb.logs = (db.logs || []).filter(l => new Date(l.date || l.timestamp) <= limit);
+      } else {
+        backupDb.logs = db.logs;
+      }
+    }
+
+    const jsonStr = JSON.stringify(backupDb, null, 2);
     const blob = new Blob([jsonStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1565,7 +1682,8 @@ function SettingsView({ db, save, logAction }) {
     a.download = `redorbit_backup_${todayStr()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    logAction("Backup", "Exported application backup JSON file");
+    logAction("Backup", "Exported custom application backup");
+    setShowBackup(false);
   };
 
   const importBackup = (e) => {
@@ -1586,36 +1704,73 @@ function SettingsView({ db, save, logAction }) {
     reader.readAsText(file);
   };
 
-  // Bulk Delete Function
   const handleClearData = () => {
     let nextDb = { ...db };
+    const limit = clearBeforeDate ? new Date(clearBeforeDate) : null;
 
-    const filterByDate = (items, dateField) => {
-      if(!clearBeforeDate) return [];
-      return items.filter(i => new Date(i[dateField]) >= new Date(clearBeforeDate));
-    };
-
-    if (clearCategory === "logs") {
+    if (clearCategory === "customers") {
+      if(!confirm("Are you sure you want to clear Customers data?")) return;
+      if (limit) {
+        Object.keys(nextDb.transactions || {}).forEach(k => {
+          if (nextDb.customers.some(c => c.id === k)) {
+            nextDb.transactions[k] = nextDb.transactions[k].filter(t => new Date(t.date || t.createdAt) >= limit);
+          }
+        });
+      } else {
+        nextDb.customers.forEach(c => { delete nextDb.transactions[c.id]; });
+        nextDb.customers = [];
+      }
+      logAction("Data Cleared", "Cleared Customers");
+    }
+    else if (clearCategory === "suppliers") {
+      if(!confirm("Are you sure you want to clear Suppliers data?")) return;
+      if (limit) {
+        Object.keys(nextDb.transactions || {}).forEach(k => {
+          if (nextDb.suppliers.some(s => s.id === k)) {
+            nextDb.transactions[k] = nextDb.transactions[k].filter(t => new Date(t.date || t.createdAt) >= limit);
+          }
+        });
+      } else {
+        nextDb.suppliers.forEach(s => { delete nextDb.transactions[s.id]; });
+        nextDb.suppliers = [];
+      }
+      logAction("Data Cleared", "Cleared Suppliers");
+    }
+    else if (clearCategory === "logs") {
       if(!confirm("Are you sure you want to clear Activity Logs?")) return;
-      nextDb.logs = filterByDate(db.logs || [], "date");
+      if (limit) {
+        nextDb.logs = (nextDb.logs || []).filter(l => new Date(l.date || l.timestamp) >= limit);
+      } else {
+        nextDb.logs = [];
+      }
       logAction("Data Cleared", "Cleared Activity Logs");
     }
     else if (clearCategory === "trips") {
       if(!confirm("Are you sure you want to clear Trips data?")) return;
-      if (clearBeforeDate) {
-        nextDb.trips = db.trips.filter(t => new Date(t.createdAt) >= new Date(clearBeforeDate));
+      if (limit) {
+        nextDb.trips = (nextDb.trips || []).filter(t => new Date(t.createdAt) >= limit);
       } else {
         nextDb.trips = [];
       }
       logAction("Data Cleared", "Cleared Trips");
     }
-    else if (clearCategory === "all") {
-      if(!confirm("WARNING: This will factory reset the app and delete ALL data permanently. Continue?")) return;
-      nextDb = { ...INIT, settings: db.settings };
+    else if (clearCategory === "factory") {
+      if (factoryConfirmStep === 0) {
+        setFactoryConfirmStep(1);
+        return;
+      } else if (factoryConfirmStep === 1) {
+        if(!confirm("FINAL WARNING: This will permanently wipe ALL data. Continue?")) {
+           setFactoryConfirmStep(0);
+           return;
+        }
+        nextDb = { ...INIT, settings: db.settings };
+      }
     }
 
     save(nextDb);
     setShowClear(false);
+    setFactoryConfirmStep(0);
+    setClearBeforeDate("");
   };
 
   return (
@@ -1641,8 +1796,8 @@ function SettingsView({ db, save, logAction }) {
         <div className="card" style={{padding:"16px"}}>
           <div style={{marginBottom:14}}>
             <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>Export Backup File</div>
-            <div style={{fontSize:12,color:"#757575",marginBottom:10}}>Save all customers, suppliers, trips, and transactions to a local file</div>
-            <button onClick={exportBackup} className="btn-pill" style={{background:NAVY,color:"#fff",width:"100%",fontSize:14}}>📥 Download Backup</button>
+            <div style={{fontSize:12,color:"#757575",marginBottom:10}}>Save specific application data to a local JSON file</div>
+            <button onClick={() => setShowBackup(true)} className="btn-pill" style={{background:NAVY,color:"#fff",width:"100%",fontSize:14}}>📥 Backup</button>
           </div>
           <div style={{borderTop:"1px solid #eee",paddingTop:14}}>
             <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>Restore Backup File</div>
@@ -1655,12 +1810,11 @@ function SettingsView({ db, save, logAction }) {
           </div>
         </div>
 
-        {/* Data Management Section */}
         <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",color:"#888",letterSpacing:"0.06em",marginBottom:8,marginTop:16}}>Data Management</div>
         <div className="card" style={{padding:"16px"}}>
           <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>Bulk Delete / Clear Data</div>
           <div style={{fontSize:12,color:"#757575",marginBottom:10}}>Delete specific category logs, trips, or reset the app entirely.</div>
-          <button onClick={() => setShowClear(true)} className="btn-pill" style={{background:"#ffebee",color:"#c62828",border:"1.5px solid #ffcdd2",width:"100%",fontSize:14}}>
+          <button onClick={() => { setFactoryConfirmStep(0); setShowClear(true); }} className="btn-pill" style={{background:"#ffebee",color:"#c62828",border:"1.5px solid #ffcdd2",width:"100%",fontSize:14}}>
             🗑️ Clear Data Options
           </button>
         </div>
@@ -1682,15 +1836,38 @@ function SettingsView({ db, save, logAction }) {
         </div>
       </div>
 
-      <Modal open={showClear} onClose={() => setShowClear(false)} title="Clear Data Options">
-        <span style={lbl}>What would you like to delete?</span>
-        <select value={clearCategory} onChange={e => setClearCategory(e.target.value)} style={inp}>
-          <option value="logs">Activity Logs (Heatmap Data)</option>
+      <Modal open={showBackup} onClose={() => setShowBackup(false)} title="Custom Backup" center>
+        <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
+          {[
+            { id: "custSupp", label: "Customers & Suppliers" },
+            { id: "trips", label: "Trips & Expenses" },
+            { id: "logs", label: "Heatmap (Logs)" }
+          ].map(opt => (
+            <div key={opt.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#f5f5f5",padding:"10px 14px",borderRadius:10}}>
+              <span style={{fontSize:14,fontWeight:600}}>{opt.label}</span>
+              <div className={`toggle-switch ${backupOpts[opt.id] ? "on" : ""}`} onClick={() => setBackupOpts({...backupOpts, [opt.id]: !backupOpts[opt.id]})}/>
+            </div>
+          ))}
+        </div>
+        <span style={lbl}>Backup Data Before (Optional)</span>
+        <div style={{fontSize:11, color:"#757575", marginTop:2}}>Leave blank to backup Everything till date.</div>
+        <input type="date" value={backupDate} onChange={e => setBackupDate(e.target.value)} style={inp}/>
+        <button onClick={handleExportBackup} disabled={!backupOpts.custSupp && !backupOpts.trips && !backupOpts.logs} className="btn-pill" style={{background:NAVY,color:"#fff",width:"100%",marginTop:20,padding:14}}>
+          Generate JSON File
+        </button>
+      </Modal>
+
+      <Modal open={showClear} onClose={() => { setShowClear(false); setFactoryConfirmStep(0); }} title="Clear Data Options" center>
+        <span style={lbl}>Select Category</span>
+        <select value={clearCategory} onChange={e => { setClearCategory(e.target.value); setFactoryConfirmStep(0); }} style={inp}>
+          <option value="customers">Customers</option>
+          <option value="suppliers">Suppliers</option>
+          <option value="logs">Heatmap (Logs)</option>
           <option value="trips">Trips & Expenses</option>
-          <option value="all">Factory Reset (Wipe All App Data)</option>
+          <option value="factory">Factory Reset</option>
         </select>
 
-        {clearCategory !== "all" && (
+        {clearCategory !== "factory" && (
           <>
             <span style={lbl}>Delete entries older than (Optional)</span>
             <div style={{fontSize:11, color:"#757575", marginTop:2}}>Leave blank to delete ALL items in this category.</div>
@@ -1698,13 +1875,16 @@ function SettingsView({ db, save, logAction }) {
           </>
         )}
 
-        <button onClick={handleClearData} className="btn-pill" style={{background:"#c62828",color:"#fff",width:"100%",marginTop:20,padding:14}}>
-          Permanently Delete Data
+        <button onClick={handleClearData} className="btn-pill" style={{background: clearCategory === "factory" && factoryConfirmStep === 1 ? "#000" : "#c62828",color:"#fff",width:"100%",marginTop:20,padding:14}}>
+          {clearCategory === "factory" 
+             ? (factoryConfirmStep === 0 ? "⚠️ Initiate Factory Reset" : "🔥 CONFIRM FACTORY RESET 🔥") 
+             : "Permanently Delete Data"}
         </button>
       </Modal>
     </div>
   );
 }
+
 
 // ══════════════════════════════════════════════════════════════
 // 5. APP LOCK SCREEN (PIN ENTRY / BIOMETRIC)
@@ -1772,6 +1952,15 @@ function App() {
     return Boolean(s && s.appLockEnabled);
   });
 
+  useEffect(() => {
+    if (activeEntityId) {
+      window.history.pushState({ ledger: true }, "");
+      const handlePop = () => setActiveEntityId(null);
+      window.addEventListener("popstate", handlePop);
+      return () => window.removeEventListener("popstate", handlePop);
+    }
+  }, [activeEntityId]);
+
   const save = useCallback((nextDb) => {
     setDb(nextDb);
     persistAllSources(nextDb);
@@ -1809,7 +1998,7 @@ function App() {
           <CustomerSupplierLedger
             db={db} save={save} entityId={activeEntityId} listKey={tab === "suppliers" ? "suppliers" : "customers"}
             accentColor={tab === "suppliers" ? "#1a3a6b" : NAVY} accentLight={tab === "suppliers" ? "#e8eaf6" : NAVY_LIGHT}
-            onBack={() => setActiveEntityId(null)} logAction={logAction}/>
+            onBack={() => { window.history.back(); setActiveEntityId(null); }} logAction={logAction}/>
         ) : (
           <>
             {tab === "customers" && <EntityList db={db} save={save} tab="customers" accentColor={NAVY} accentLight={NAVY_LIGHT} onOpen={setActiveEntityId} logAction={logAction}/>}
