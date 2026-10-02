@@ -161,4 +161,6 @@ class AndroidInterface(private val activity: MainActivity) {
             activity.openFilePicker()
         }
     }
+
+    // diffferentiate master and ui
 }
