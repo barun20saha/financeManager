@@ -162,5 +162,5 @@ class AndroidInterface(private val activity: MainActivity) {
         }
     }
 
-    // diffferentiate master and ui
+    
 }
